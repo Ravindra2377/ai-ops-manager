@@ -1,0 +1,342 @@
+const express = require('express');
+const authMiddleware = require('../middleware/auth');
+const { fetchEmails, createDraftReply } = require('../services/gmailService');
+const { analyzeEmail } = require('../services/aiService');
+const Email = require('../models/Email');
+const User = require('../models/User');
+const UserActionLog = require('../models/UserActionLog');
+const { syncLimiter } = require('../middleware/rateLimiter');
+
+const router = express.Router();
+
+/**
+ * @route   POST /api/emails/sync
+ * @desc    Manually trigger email sync and AI analysis
+ * @access  Protected
+ */
+router.post('/sync', authMiddleware, syncLimiter, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { maxResults = 10 } = req.body;
+
+        // Check if Gmail is connected
+        const user = await User.findById(userId);
+        if (!user.isGmailConnected) {
+            return res.status(400).json({
+                success: false,
+                message: 'Gmail not connected. Please connect your Gmail account first.',
+            });
+        }
+
+        // Fetch emails from Gmail
+        console.log(`Fetching ${maxResults} emails for user ${userId}...`);
+        const gmailEmails = await fetchEmails(userId, maxResults);
+
+        if (gmailEmails.length === 0) {
+            return res.json({
+                success: true,
+                message: 'No new emails found',
+                emailsProcessed: 0,
+            });
+        }
+
+        // Process each email
+        const processedEmails = [];
+        const skippedEmails = [];
+        const failedEmails = [];
+
+        for (const emailData of gmailEmails) {
+            // IDEMPOTENCY: Check if email already exists
+            const existingEmail = await Email.findOne({
+                gmailMessageId: emailData.gmailMessageId,
+            });
+
+            if (existingEmail) {
+                console.log(`✓ Email ${emailData.gmailMessageId} already processed, skipping...`);
+                skippedEmails.push(emailData.gmailMessageId);
+                continue;
+            }
+
+            // Create email record first (before AI analysis)
+            const email = new Email({
+                userId,
+                ...emailData,
+                aiProcessingStatus: 'processing',
+            });
+
+            try {
+                // Analyze email with AI
+                console.log(`🤖 Analyzing: ${emailData.subject}`);
+                const aiAnalysis = await analyzeEmail({
+                    from: emailData.from.email,
+                    subject: emailData.subject,
+                    body: emailData.body,
+                });
+
+                // Update with AI results
+                email.aiAnalysis = aiAnalysis;
+                email.aiProcessingStatus = 'completed';
+
+                if (aiAnalysis.aiLastError) {
+                    email.aiLastError = aiAnalysis.aiLastError;
+                }
+
+                await email.save();
+                processedEmails.push(email);
+
+                console.log(`✅ Processed: ${emailData.subject} (${aiAnalysis.intent}, ${aiAnalysis.urgency})`);
+            } catch (error) {
+                // AI failed - save email anyway with failed status
+                console.error(`❌ AI analysis failed for: ${emailData.subject}`, error.message);
+
+                email.aiProcessingStatus = 'failed';
+                email.aiLastError = error.message;
+                email.aiRetryCount += 1;
+
+                await email.save();
+                failedEmails.push({
+                    subject: emailData.subject,
+                    error: error.message,
+                });
+            }
+        }
+
+        // Update last sync time
+        user.lastSyncAt = new Date();
+        await user.save();
+
+        res.json({
+            success: true,
+            message: `Successfully processed ${processedEmails.length} emails`,
+            emailsProcessed: processedEmails.length,
+            emailsSkipped: skippedEmails.length,
+            emailsFailed: failedEmails.length,
+            emails: processedEmails.map(e => ({
+                id: e._id,
+                subject: e.subject,
+                from: e.from,
+                intent: e.aiAnalysis.intent,
+                urgency: e.aiAnalysis.urgency,
+                confidence: e.aiAnalysis.confidenceScore,
+            })),
+            failures: failedEmails.length > 0 ? failedEmails : undefined,
+        });
+    } catch (error) {
+        console.error('Email sync error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error syncing emails',
+            error: error.message,
+        });
+    }
+});
+
+/**
+ * @route   GET /api/emails
+ * @desc    Get all processed emails with filters
+ * @access  Protected
+ */
+router.get('/', authMiddleware, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { urgency, userAction, limit = 50 } = req.query;
+
+        // Build query
+        const query = { userId };
+        if (urgency) query['aiAnalysis.urgency'] = urgency.toUpperCase();
+        if (userAction) query.userAction = userAction;
+
+        const emails = await Email.find(query)
+            .sort({ receivedAt: -1 })
+            .limit(parseInt(limit));
+
+        res.json({
+            success: true,
+            count: emails.length,
+            emails,
+        });
+    } catch (error) {
+        console.error('Error fetching emails:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching emails',
+        });
+    }
+});
+
+/**
+ * @route   GET /api/emails/:id
+ * @desc    Get single email with full details
+ * @access  Protected
+ */
+router.get('/:id', authMiddleware, async (req, res) => {
+    try {
+        const email = await Email.findOne({
+            _id: req.params.id,
+            userId: req.userId,
+        });
+
+        if (!email) {
+            return res.status(404).json({
+                success: false,
+                message: 'Email not found',
+            });
+        }
+
+        res.json({
+            success: true,
+            email,
+        });
+    } catch (error) {
+        console.error('Error fetching email:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching email',
+        });
+    }
+});
+
+/**
+ * @route   POST /api/emails/:id/action
+ * @desc    User approves/rejects AI suggestion
+ * @access  Protected
+ */
+router.post('/:id/action', authMiddleware, async (req, res) => {
+    try {
+        const { action } = req.body; // 'approved', 'rejected', 'ignored'
+
+        if (!['approved', 'rejected', 'ignored'].includes(action)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid action. Must be: approved, rejected, or ignored',
+            });
+        }
+
+        const email = await Email.findOne({
+            _id: req.params.id,
+            userId: req.userId,
+        });
+
+        if (!email) {
+            return res.status(404).json({
+                success: false,
+                message: 'Email not found',
+            });
+        }
+
+        email.userAction = action;
+        await email.save();
+
+        // AUDIT LOG: Track user actions for ML training
+        const actionLog = new UserActionLog({
+            userId: req.userId,
+            emailId: email._id,
+            action,
+            aiSuggestion: {
+                intent: email.aiAnalysis.intent,
+                urgency: email.aiAnalysis.urgency,
+                suggestedActions: email.aiAnalysis.suggestedActions,
+            },
+        });
+        await actionLog.save();
+
+        res.json({
+            success: true,
+            message: `Email marked as ${action}`,
+            email,
+        });
+    } catch (error) {
+        console.error('Error updating email action:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error updating email action',
+        });
+    }
+});
+
+/**
+ * @route   POST /api/emails/:id/draft-reply
+ * @desc    Save AI-generated draft reply to Gmail
+ * @access  Protected
+ */
+router.post('/:id/draft-reply', authMiddleware, async (req, res) => {
+    try {
+        const email = await Email.findOne({
+            _id: req.params.id,
+            userId: req.userId,
+        });
+
+        if (!email) {
+            return res.status(404).json({
+                success: false,
+                message: 'Email not found',
+            });
+        }
+
+        if (!email.aiAnalysis.draftReply) {
+            return res.status(400).json({
+                success: false,
+                message: 'No draft reply available for this email',
+            });
+        }
+
+        // Create draft in Gmail
+        const draft = await createDraftReply(
+            req.userId,
+            email.threadId,
+            email.aiAnalysis.draftReply
+        );
+
+        res.json({
+            success: true,
+            message: 'Draft reply saved to Gmail',
+            draftId: draft.id,
+        });
+    } catch (error) {
+        console.error('Error creating draft reply:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error creating draft reply',
+        });
+    }
+});
+
+/**
+ * @route   GET /api/emails/stats
+ * @desc    Get email statistics for dashboard
+ * @access  Protected
+ */
+router.get('/stats/overview', authMiddleware, async (req, res) => {
+    try {
+        const userId = req.userId;
+
+        const [total, pending, highUrgency, mediumUrgency, lowUrgency] = await Promise.all([
+            Email.countDocuments({ userId }),
+            Email.countDocuments({ userId, userAction: 'pending' }),
+            Email.countDocuments({ userId, 'aiAnalysis.urgency': 'HIGH' }),
+            Email.countDocuments({ userId, 'aiAnalysis.urgency': 'MEDIUM' }),
+            Email.countDocuments({ userId, 'aiAnalysis.urgency': 'LOW' }),
+        ]);
+
+        res.json({
+            success: true,
+            stats: {
+                total,
+                pending,
+                urgency: {
+                    high: highUrgency,
+                    medium: mediumUrgency,
+                    low: lowUrgency,
+                },
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching stats:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching statistics',
+        });
+    }
+});
+
+module.exports = router;
