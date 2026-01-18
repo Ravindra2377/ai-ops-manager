@@ -11,7 +11,7 @@ import {
 import { dashboardAPI } from '../services/api';
 import { getToken } from '../utils/storage';
 
-const API_URL = 'https://min-sheetlike-tillie.ngrok-free.dev';
+const API_URL = 'https://ai-ops-manager-api.onrender.com';
 
 export default function DashboardScreen({ navigation }) {
     const [loading, setLoading] = useState(true);

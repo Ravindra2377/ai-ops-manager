@@ -16,7 +16,7 @@ import IntentBadge from '../components/IntentBadge';
 import { sanitizeEmailHtml } from '../utils/htmlSanitizer';
 import { getToken } from '../utils/storage';
 
-const API_URL = 'https://min-sheetlike-tillie.ngrok-free.dev'; // Update with your server URL
+const API_URL = 'https://ai-ops-manager-api.onrender.com';
 
 export default function EmailDetailScreen({ route, navigation }) {
     const { emailId } = route.params;
