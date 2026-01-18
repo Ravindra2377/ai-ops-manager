@@ -6,14 +6,15 @@ services:
     env: node
     region: oregon
     plan: free
+    rootDir: server
     buildCommand: npm install
-    startCommand: node index.js
+    startCommand: npm start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 5000
+        value: 10000
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
@@ -30,3 +31,4 @@ services:
         sync: false
       - key: AI_ENABLED
         value: true
+
