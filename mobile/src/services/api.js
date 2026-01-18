@@ -1,12 +1,8 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-// Backend API URL - Choose based on your testing device:
-// For iOS Simulator or Web: http://localhost:5000/api
-// For Android Emulator: http://10.0.2.2:5000/api
-// For Physical Device: http://192.168.1.144:5000/api (your computer's IP)
-// For Physical Device: Use the ngrok URL to avoid firewall/IP issues
-export const API_URL = 'https://min-sheetlike-tillie.ngrok-free.dev/api';
+// Production API URL (Render)
+export const API_URL = 'https://ai-ops-manager-api.onrender.com/api';
 const BASE_URL = API_URL.replace('/api', ''); // Base URL without /api
 
 // Create axios instance
