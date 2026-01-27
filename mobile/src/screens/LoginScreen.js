@@ -11,9 +11,11 @@ import {
     Platform,
     ScrollView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { authAPI } from '../services/api';
 import { saveToken, saveUserData } from '../utils/storage';
 import { useAuth } from '../context/AuthContext';
+import { Colors, Typography, BorderRadius, Spacing } from '../constants/theme';
 
 export default function LoginScreen({ navigation }) {
     const { login: contextLogin } = useAuth();
@@ -120,7 +122,7 @@ export default function LoginScreen({ navigation }) {
                             <TextInput
                                 style={styles.input}
                                 placeholder="Full Name"
-                                placeholderTextColor="#999"
+                                placeholderTextColor={Colors.placeholder}
                                 value={name}
                                 onChangeText={setName}
                                 autoCapitalize="words"
@@ -131,7 +133,7 @@ export default function LoginScreen({ navigation }) {
                         <TextInput
                             style={styles.input}
                             placeholder="Email"
-                            placeholderTextColor="#999"
+                            placeholderTextColor={Colors.placeholder}
                             value={email}
                             onChangeText={setEmail}
                             autoCapitalize="none"
@@ -142,7 +144,7 @@ export default function LoginScreen({ navigation }) {
                         <TextInput
                             style={styles.input}
                             placeholder="Password"
-                            placeholderTextColor="#999"
+                            placeholderTextColor={Colors.placeholder}
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
@@ -153,7 +155,7 @@ export default function LoginScreen({ navigation }) {
                             <TextInput
                                 style={styles.input}
                                 placeholder="Confirm Password"
-                                placeholderTextColor="#999"
+                                placeholderTextColor={Colors.placeholder}
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
                                 secureTextEntry
