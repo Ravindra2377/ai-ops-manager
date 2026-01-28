@@ -2,144 +2,78 @@ import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
+    StyleSheet,
     ScrollView,
     TouchableOpacity,
-    StyleSheet,
+    Switch,
     Alert,
     ActivityIndicator,
     Modal,
-    Linking,
+    TextInput,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
-import { authAPI, API_URL } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { getToken } from '../utils/storage';
-
-// Get base URL without /api suffix
-const BASE_URL = API_URL.replace('/api', '');
+import { authAPI } from '../api';
+import Button from '../components/Button';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 
 export default function ProfileScreen({ navigation }) {
-    const { user: contextUser, logout: contextLogout } = useAuth();
-    const [user, setUser] = useState(null);
+    const { user, logout } = useAuth();
     const [gmailAccounts, setGmailAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [showLabelModal, setShowLabelModal] = useState(false);
+    const [showConnectModal, setShowConnectModal] = useState(false);
+    const [newEmail, setNewEmail] = useState('');
+    const [newAppPassword, setNewAppPassword] = useState('');
+    const [connecting, setConnecting] = useState(false);
+
+    // AI Settings State
+    const [aiSettings, setAiSettings] = useState({
+        autoReply: false,
+        dailySummary: true,
+        urgencyNotifications: true,
+    });
 
     useEffect(() => {
-        loadUserData();
         loadGmailAccounts();
     }, []);
 
-    const loadUserData = async () => {
+    const loadGmailAccounts = async () => {
         try {
-            const response = await authAPI.getProfile();
-            if (response.data.success) {
-                setUser(response.data.user);
-            }
+            const data = await authAPI.getGmailAccounts();
+            setGmailAccounts(data);
         } catch (error) {
-            console.error('Error loading user data:', error);
+            console.error('Failed to load Gmail accounts:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const loadGmailAccounts = async () => {
+    const handleConnectGmail = async () => {
+        if (!newEmail || !newAppPassword) {
+            Alert.alert('Error', 'Please fill in all fields');
+            return;
+        }
+
+        setConnecting(true);
         try {
-            const token = await getToken();
-            const response = await fetch(`${BASE_URL}/api/gmail/accounts`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
-            const data = await response.json();
-            if (data.success) {
-                setGmailAccounts(data.accounts || []);
-            }
+            await authAPI.connectGmail({ email: newEmail, appPassword: newAppPassword });
+            Alert.alert('Success', 'Gmail account connected successfully');
+            setShowConnectModal(false);
+            setNewEmail('');
+            setNewAppPassword('');
+            loadGmailAccounts();
         } catch (error) {
-            console.error('Error loading Gmail accounts:', error);
+            Alert.alert('Error', error.response?.data?.message || 'Failed to connect account');
+        } finally {
+            setConnecting(false);
         }
     };
 
-    const handleAddAccount = async (label) => {
-        try {
-            setShowLabelModal(false);
-
-            // Check account limit
-            const token = await getToken();
-            const limitResponse = await fetch(`${BASE_URL}/api/gmail/accounts/check-limit`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-            const limitData = await limitResponse.json();
-
-            if (!limitData.canAdd) {
-                if (limitData.needsUpgrade) {
-                    Alert.alert(
-                        'Upgrade Required',
-                        'Free tier allows 1 Gmail account. Upgrade to Premium for up to 3 accounts.',
-                        [{ text: 'OK' }]
-                    );
-                } else {
-                    Alert.alert(
-                        'Account Limit Reached',
-                        `You can connect up to ${limitData.maxAccounts} Gmail accounts.`,
-                        [{ text: 'OK' }]
-                    );
-                }
-                return;
-            }
-
-            // Get OAuth URL
-            const authUrl = `${BASE_URL}/api/auth/gmail/authorize?userId=${user.id}&label=${label}&addingAccount=true`;
-
-            Alert.alert(
-                'Add Gmail Account',
-                `Opening browser to connect your ${label} Gmail account...`,
-                [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                        text: 'Continue',
-                        onPress: async () => {
-                            await Linking.openURL(authUrl);
-                            // Reload accounts after a delay
-                            setTimeout(() => loadGmailAccounts(), 3000);
-                        },
-                    },
-                ]
-            );
-        } catch (error) {
-            console.error('Error adding account:', error);
-            Alert.alert('Error', 'Failed to add account');
-        }
-    };
-
-    const handleSetPrimary = async (accountId) => {
-        try {
-            const token = await getToken();
-            const response = await fetch(`${BASE_URL}/api/gmail/accounts/${accountId}/set-primary`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                Alert.alert('Success', data.message);
-                loadGmailAccounts();
-            }
-        } catch (error) {
-            console.error('Error setting primary:', error);
-            Alert.alert('Error', 'Failed to set primary account');
-        }
-    };
-
-    const handleDisconnectAccount = (accountId, email) => {
+    const handleDisconnect = async (accountId) => {
         Alert.alert(
-            'Disconnect Account?',
-            `Are you sure you want to disconnect ${email}? All emails from this account will be deleted.`,
+            'Disconnect Details',
+            'Are you sure you want to disconnect this account?',
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
@@ -147,502 +81,330 @@ export default function ProfileScreen({ navigation }) {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            const token = await getToken();
-                            const response = await fetch(`${BASE_URL}/api/gmail/accounts/${accountId}`, {
-                                method: 'DELETE',
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                },
-                            });
-                            const data = await response.json();
-
-                            if (data.success) {
-                                Alert.alert('Success', data.message);
-                                loadGmailAccounts();
-                            }
+                            await authAPI.disconnectGmail(accountId);
+                            loadGmailAccounts();
                         } catch (error) {
-                            console.error('Error disconnecting:', error);
                             Alert.alert('Error', 'Failed to disconnect account');
                         }
-                    },
-                },
+                    }
+                }
             ]
         );
     };
 
-    const handleLogout = () => {
-        Alert.alert(
-            'Log Out',
-            'Are you sure you want to log out?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Log Out',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await contextLogout();
-                        } catch (error) {
-                            Alert.alert('Error', 'Failed to log out. Please try again.');
-                        }
-                    },
-                },
-            ]
-        );
+    const toggleSetting = (key) => {
+        setAiSettings(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
-    if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#007AFF" />
+    const AccountCard = ({ account }) => (
+        <View style={styles.accountCard}>
+            <View style={styles.accountInfo}>
+                <View style={[styles.statusDot, { backgroundColor: account.status === 'CONNECTED' ? Colors.success : Colors.error }]} />
+                <View>
+                    <Text style={styles.accountEmail}>{account.email}</Text>
+                    <Text style={styles.lastSync}>
+                        Last Synced: {account.lastSync ? new Date(account.lastSync).toLocaleString() : 'Never'}
+                    </Text>
+                </View>
             </View>
-        );
-    }
+            <TouchableOpacity
+                onPress={() => handleDisconnect(account._id)}
+                style={styles.disconnectButton}
+            >
+                <Text style={styles.disconnectText}>✕</Text>
+            </TouchableOpacity>
+        </View>
+    );
 
     return (
-        <ScrollView style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Profile</Text>
-            </View>
-
-            {/* Identity Section */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>ACCOUNT</Text>
-                <View style={styles.card}>
-                    <View style={styles.identityRow}>
-                        <Text style={styles.identityIcon}>👤</Text>
-                        <View style={styles.identityInfo}>
-                            <Text style={styles.identityName}>User</Text>
-                            <Text style={styles.identityEmail}>{user?.email}</Text>
-                        </View>
+        <View style={styles.container}>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                {/* Profile Header */}
+                <View style={styles.header}>
+                    <View style={styles.avatar}>
+                        <Text style={styles.avatarText}>
+                            {user?.name?.charAt(0).toUpperCase() || 'U'}
+                        </Text>
                     </View>
-                    <View style={styles.statusBadge}>
-                        <Text style={styles.statusText}>✅ Securely Connected</Text>
-                    </View>
+                    <Text style={styles.userName}>{user?.name || 'User'}</Text>
+                    <Text style={styles.userEmail}>{user?.email}</Text>
                 </View>
-            </View>
 
-            {/* Gmail Accounts Section */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>📧 GMAIL ACCOUNTS</Text>
+                {/* Connected Accounts */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Connected Accounts</Text>
+                    {loading ? (
+                        <ActivityIndicator color={Colors.primary} />
+                    ) : (
+                        gmailAccounts.map(account => (
+                            <AccountCard key={account._id} account={account} />
+                        ))
+                    )}
+                    <Button
+                        title="Connect New Account"
+                        variant="outline"
+                        onPress={() => setShowConnectModal(true)}
+                        style={styles.addButton}
+                        icon={<Text style={{ color: Colors.primary, marginRight: 8, fontSize: 18 }}>+</Text>}
+                    />
+                </View>
 
-                {gmailAccounts.map((account) => (
-                    <View key={account.id} style={styles.card}>
-                        <View style={styles.accountHeader}>
-                            <View style={styles.accountLabelRow}>
-                                <Text style={styles.accountLabel}>{account.label}</Text>
-                                {account.isPrimary && (
-                                    <View style={styles.primaryBadge}>
-                                        <Text style={styles.primaryBadgeText}>PRIMARY</Text>
-                                    </View>
-                                )}
-                            </View>
-                            <Text style={styles.accountEmail}>{account.email}</Text>
-                            <Text style={styles.accountSync}>
-                                Last sync: {account.lastSyncAt ? new Date(account.lastSyncAt).toLocaleString() : 'Never'}
-                            </Text>
-                        </View>
-                        <View style={styles.accountActions}>
-                            {!account.isPrimary && (
-                                <TouchableOpacity
-                                    style={styles.setPrimaryButton}
-                                    onPress={() => handleSetPrimary(account.id)}
-                                >
-                                    <Text style={styles.setPrimaryButtonText}>Set Primary</Text>
-                                </TouchableOpacity>
-                            )}
-                            <TouchableOpacity
-                                style={styles.disconnectButton}
-                                onPress={() => handleDisconnectAccount(account.id, account.email)}
-                            >
-                                <Text style={styles.disconnectButtonText}>Disconnect</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                ))}
+                {/* AI Preferences */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>AI Preferences</Text>
 
-                {gmailAccounts.length < 3 && (
-                    <TouchableOpacity
-                        style={styles.addAccountButton}
-                        onPress={() => setShowLabelModal(true)}
-                    >
-                        <Text style={styles.addAccountButtonText}>➕ Add Another Gmail Account</Text>
-                    </TouchableOpacity>
-                )}
-
-                {gmailAccounts.length === 0 && (
-                    <View style={styles.card}>
-                        <Text style={styles.noAccountsText}>No Gmail accounts connected</Text>
-                        <TouchableOpacity
-                            style={styles.connectButton}
-                            onPress={() => navigation.navigate('ConnectGmail')}
-                        >
-                            <Text style={styles.connectButtonText}>Connect Gmail</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-            </View>
-
-            {/* AI Controls */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🤖 AI CONTROLS</Text>
-
-                <View style={styles.card}>
-                    <View style={styles.controlRow}>
+                    <View style={styles.settingRow}>
                         <View>
-                            <Text style={styles.controlLabel}>AI Suggestions</Text>
-                            <Text style={styles.controlDescription}>
-                                Analyze emails and suggest actions
-                            </Text>
+                            <Text style={styles.settingLabel}>Auto-Draft Replies</Text>
+                            <Text style={styles.settingDescription}>AI will prepare drafts for urgent emails</Text>
                         </View>
-                        <View style={styles.statusPill}>
-                            <Text style={styles.statusPillText}>ON</Text>
-                        </View>
+                        <Switch
+                            value={aiSettings.autoReply}
+                            onValueChange={() => toggleSetting('autoReply')}
+                            trackColor={{ false: Colors.border, true: Colors.primary }}
+                        />
                     </View>
-                </View>
 
-                <View style={styles.card}>
-                    <View style={styles.controlRow}>
+                    <View style={styles.settingRow}>
                         <View>
-                            <Text style={styles.controlLabel}>Auto-Actions</Text>
-                            <Text style={styles.controlDescription}>
-                                AI can take actions without approval
-                            </Text>
+                            <Text style={styles.settingLabel}>Daily Morning Summary</Text>
+                            <Text style={styles.settingDescription}>Get a summary notification at 8 AM</Text>
                         </View>
-                        <View style={[styles.statusPill, styles.statusPillDisabled]}>
-                            <Text style={styles.statusPillTextDisabled}>OFF</Text>
+                        <Switch
+                            value={aiSettings.dailySummary}
+                            onValueChange={() => toggleSetting('dailySummary')}
+                            trackColor={{ false: Colors.border, true: Colors.primary }}
+                        />
+                    </View>
+
+                    <View style={styles.settingRow}>
+                        <View>
+                            <Text style={styles.settingLabel}>Urgent Notifications</Text>
+                            <Text style={styles.settingDescription}>Push alerts for high priority items</Text>
                         </View>
+                        <Switch
+                            value={aiSettings.urgencyNotifications}
+                            onValueChange={() => toggleSetting('urgencyNotifications')}
+                            trackColor={{ false: Colors.border, true: Colors.primary }}
+                        />
                     </View>
                 </View>
-            </View>
 
-            {/* Security & Privacy */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🔒 SECURITY & PRIVACY</Text>
-                <View style={styles.card}>
-                    <Text style={styles.securityItem}>• Emails are never sent automatically</Text>
-                    <Text style={styles.securityItem}>• AI suggestions require your approval</Text>
-                    <Text style={styles.securityItem}>• All tokens are encrypted</Text>
-                    <Text style={styles.securityItem}>• You can disconnect anytime</Text>
-                </View>
-            </View>
+                <Button
+                    title="Sign Out"
+                    variant="ghost"
+                    onPress={logout}
+                    style={styles.logoutButton}
+                    textStyle={{ color: Colors.error }}
+                />
+            </ScrollView>
 
-            {/* Logout */}
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                <Text style={styles.logoutButtonText}>🚪 Log Out</Text>
-            </TouchableOpacity>
-
-            <View style={styles.bottomSpacer} />
-
-            {/* Label Selection Modal */}
+            {/* Connect Modal */}
             <Modal
-                visible={showLabelModal}
+                visible={showConnectModal}
                 transparent={true}
                 animationType="slide"
-                onRequestClose={() => setShowLabelModal(false)}
             >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Choose Account Label</Text>
-                        <TouchableOpacity
-                            style={styles.labelOption}
-                            onPress={() => handleAddAccount('Work')}
-                        >
-                            <Text style={styles.labelOptionText}>Work 💼</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.labelOption}
-                            onPress={() => handleAddAccount('Personal')}
-                        >
-                            <Text style={styles.labelOptionText}>🏠 Personal</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.labelOption}
-                            onPress={() => handleAddAccount('Other')}
-                        >
-                            <Text style={styles.labelOptionText}>📌 Other</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.cancelButton}
-                            onPress={() => setShowLabelModal(false)}
-                        >
-                            <Text style={styles.cancelButtonText}>Cancel</Text>
-                        </TouchableOpacity>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    style={styles.modalOverlay}
+                >
+                    <View style={styles.modalCard}>
+                        <Text style={styles.modalTitle}>Connect Gmail</Text>
+                        <Text style={styles.modalSubtitle}>Enter your email and app password</Text>
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Email Address"
+                            value={newEmail}
+                            onChangeText={setNewEmail}
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                        />
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="App Password (16 chars)"
+                            value={newAppPassword}
+                            onChangeText={setNewAppPassword}
+                            secureTextEntry={false} // App passwords are often copied/pasted, visible is easier
+                        />
+
+                        <View style={styles.modalActions}>
+                            <Button
+                                title="Cancel"
+                                variant="ghost"
+                                onPress={() => setShowConnectModal(false)}
+                                style={{ flex: 1, marginRight: 8 }}
+                            />
+                            <Button
+                                title="Connect"
+                                variant="primary"
+                                onPress={handleConnectGmail}
+                                loading={connecting}
+                                style={{ flex: 1, marginLeft: 8 }}
+                            />
+                        </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
-        </ScrollView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F2F2F7',
+        backgroundColor: Colors.background,
     },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+    scrollContent: {
+        paddingTop: 60,
+        paddingHorizontal: Spacing.lg,
+        paddingBottom: 40,
     },
     header: {
-        backgroundColor: '#fff',
-        paddingTop: 60,
-        paddingHorizontal: 20,
-        paddingBottom: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E5EA',
+        alignItems: 'center',
+        marginBottom: Spacing.xl,
     },
-    headerTitle: {
+    avatar: {
+        width: 80,
+        height: 80,
+        borderRadius: BorderRadius.circle,
+        backgroundColor: Colors.primaryLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Spacing.md,
+        borderWidth: 2,
+        borderColor: Colors.border,
+    },
+    avatarText: {
         fontSize: 32,
-        fontWeight: 'bold',
-        color: '#1C1C1E',
+        fontWeight: Typography.bold,
+        color: Colors.primary,
+    },
+    userName: {
+        fontSize: Typography.h2,
+        fontWeight: Typography.bold,
+        color: Colors.textPrimary,
+        marginBottom: 4,
+    },
+    userEmail: {
+        fontSize: Typography.body,
+        color: Colors.textSecondary,
     },
     section: {
-        marginTop: 24,
-        paddingHorizontal: 20,
+        marginBottom: Spacing.xl,
     },
     sectionTitle: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#8E8E93',
-        letterSpacing: 0.5,
-        marginBottom: 12,
+        fontSize: Typography.h3,
+        fontWeight: Typography.bold,
+        color: Colors.textPrimary,
+        marginBottom: Spacing.md,
     },
-    card: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
-    },
-    identityRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    identityIcon: {
-        fontSize: 40,
-        marginRight: 16,
-    },
-    identityInfo: {
-        flex: 1,
-    },
-    identityName: {
-        fontSize: 20,
-        fontWeight: '600',
-        color: '#1C1C1E',
-        marginBottom: 4,
-    },
-    identityEmail: {
-        fontSize: 15,
-        color: '#8E8E93',
-    },
-    statusBadge: {
-        alignSelf: 'flex-start',
-        backgroundColor: '#E8F5E9',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 6,
-    },
-    statusText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#2E7D32',
-    },
-    accountHeader: {
-        marginBottom: 12,
-    },
-    accountLabelRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    accountLabel: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#1C1C1E',
-        marginRight: 8,
-    },
-    primaryBadge: {
-        backgroundColor: '#007AFF',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 4,
-    },
-    primaryBadgeText: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: '#fff',
-    },
-    accountEmail: {
-        fontSize: 15,
-        color: '#3C3C43',
-        marginBottom: 4,
-    },
-    accountSync: {
-        fontSize: 13,
-        color: '#8E8E93',
-    },
-    accountActions: {
-        flexDirection: 'row',
-        gap: 8,
-    },
-    setPrimaryButton: {
-        flex: 1,
-        backgroundColor: '#007AFF',
-        paddingVertical: 10,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    setPrimaryButtonText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    disconnectButton: {
-        flex: 1,
-        backgroundColor: '#fff',
-        paddingVertical: 10,
-        borderRadius: 8,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#FF3B30',
-    },
-    disconnectButtonText: {
-        color: '#FF3B30',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    addAccountButton: {
-        backgroundColor: '#fff',
-        padding: 16,
-        borderRadius: 12,
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: '#007AFF',
-        borderStyle: 'dashed',
-    },
-    addAccountButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#007AFF',
-    },
-    noAccountsText: {
-        fontSize: 15,
-        color: '#8E8E93',
-        textAlign: 'center',
-        marginBottom: 16,
-    },
-    connectButton: {
-        backgroundColor: '#007AFF',
-        paddingVertical: 12,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    connectButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    controlRow: {
+    accountCard: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        backgroundColor: Colors.card,
+        padding: Spacing.md,
+        borderRadius: BorderRadius.md,
+        marginBottom: Spacing.sm,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        ...Shadows.sm,
     },
-    controlLabel: {
-        fontSize: 17,
-        fontWeight: '600',
-        color: '#1C1C1E',
-        marginBottom: 4,
+    accountInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
-    controlDescription: {
-        fontSize: 14,
-        color: '#8E8E93',
+    statusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginRight: Spacing.md,
     },
-    statusPill: {
-        backgroundColor: '#E8F5E9',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 12,
+    accountEmail: {
+        fontSize: Typography.body,
+        fontWeight: Typography.semibold,
+        color: Colors.textPrimary,
     },
-    statusPillText: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#2E7D32',
+    lastSync: {
+        fontSize: Typography.tiny,
+        color: Colors.textSecondary,
     },
-    statusPillDisabled: {
-        backgroundColor: '#F2F2F7',
+    disconnectButton: {
+        padding: Spacing.xs,
+        borderRadius: BorderRadius.circle,
+        backgroundColor: Colors.surface,
     },
-    statusPillTextDisabled: {
-        color: '#8E8E93',
+    disconnectText: {
+        fontSize: Typography.small,
+        color: Colors.textSecondary,
+        fontWeight: 'bold',
     },
-    securityItem: {
-        fontSize: 15,
-        lineHeight: 24,
-        color: '#3C3C43',
-        marginBottom: 8,
+    addButton: {
+        marginTop: Spacing.sm,
+    },
+    settingRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: Spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border,
+    },
+    settingLabel: {
+        fontSize: Typography.body,
+        fontWeight: Typography.semibold,
+        color: Colors.textPrimary,
+        marginBottom: 2,
+    },
+    settingDescription: {
+        fontSize: Typography.tiny,
+        color: Colors.textSecondary,
     },
     logoutButton: {
-        backgroundColor: '#fff',
-        marginHorizontal: 20,
-        marginTop: 32,
-        padding: 16,
-        borderRadius: 12,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#FF3B30',
-    },
-    logoutButtonText: {
-        fontSize: 17,
-        fontWeight: '600',
-        color: '#FF3B30',
-    },
-    bottomSpacer: {
-        height: 40,
+        marginTop: Spacing.lg,
+        borderColor: Colors.error,
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: Spacing.lg,
     },
-    modalContent: {
-        backgroundColor: '#fff',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 24,
+    modalCard: {
+        width: '100%',
+        backgroundColor: Colors.background,
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.xl,
+        ...Shadows.lg,
     },
     modalTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#1C1C1E',
-        marginBottom: 20,
+        fontSize: Typography.h2,
+        fontWeight: Typography.bold,
+        color: Colors.textPrimary,
+        marginBottom: Spacing.xs,
         textAlign: 'center',
     },
-    labelOption: {
-        backgroundColor: '#F2F2F7',
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 12,
-        alignItems: 'center',
+    modalSubtitle: {
+        fontSize: Typography.body,
+        color: Colors.textSecondary,
+        marginBottom: Spacing.lg,
+        textAlign: 'center',
     },
-    labelOptionText: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#1C1C1E',
+    input: {
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.md,
+        padding: Spacing.md,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        marginBottom: Spacing.md,
+        fontSize: Typography.body,
     },
-    cancelButton: {
-        padding: 16,
-        alignItems: 'center',
-    },
-    cancelButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#8E8E93',
+    modalActions: {
+        flexDirection: 'row',
+        marginTop: Spacing.md,
     },
 });

@@ -61,117 +61,117 @@ export default function EmailListScreen({ navigation }) {
     const handleSync = async () => {
         setSyncing(true);
         try {
-            const response = await emailAPI.sync(20);
-
-            if (response.data.success) {
-                Alert.alert(
-                    'Sync Complete',
-                    `Processed: ${response.data.emailsProcessed}\nSkipped: ${response.data.emailsSkipped || 0}\nFailed: ${response.data.emailsFailed || 0}`
-                );
-                loadEmails();
+            setSyncing(true);
+            const data = await emailAPI.sync();
+            // If sync returns new emails, prepend them or reload
+            if (data.count > 0) {
+                await loadEmails();
             }
         } catch (error) {
-            console.error('Sync error:', error);
-            Alert.alert('Sync Failed', error.response?.data?.message || 'Failed to sync emails');
+            console.error('Failed to sync:', error);
         } finally {
             setSyncing(false);
         }
     };
 
-    const onRefresh = () => {
-        setRefreshing(true);
+    useEffect(() => {
         loadEmails();
+    }, []);
+
+    const filteredEmails = emails.filter(email => {
+        if (selectedTab === 'ALL') return true;
+        // Check if aiAnalysis exists before accessing urgency
+        return email.aiAnalysis?.urgency === selectedTab;
+    });
+
+    const getTabStyle = (isActive, tabKey) => {
+        if (!isActive) return styles.tab;
+
+        // Return active tab style
+        return styles.tabActive;
     };
 
-    const renderEmailCard = ({ item }) => (
-        <EmailCard
-            email={item}
-            onPress={() => navigation.navigate('EmailDetail', { emailId: item._id })}
-        />
-    );
+    const TabButton = ({ tab }) => {
+        const isActive = selectedTab === tab.key;
 
-    const renderEmptyState = () => (
-        <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>No Emails</Text>
-            <Text style={styles.emptyText}>
-                {selectedTab === 'all'
-                    ? 'Sync your emails to get started'
-                    : `No ${selectedTab.toLowerCase()} priority emails`}
-            </Text>
-            <TouchableOpacity style={styles.syncButton} onPress={handleSync}>
-                <Text style={styles.syncButtonText}>Sync Emails</Text>
-            </TouchableOpacity>
-        </View>
-    );
+        if (isActive) {
+            return (
+                <TouchableOpacity
+                    onPress={() => setSelectedTab(tab.key)}
+                    activeOpacity={0.8}
+                >
+                    <LinearGradient
+                        colors={[Colors.gradientPrimaryStart, Colors.gradientPrimaryEnd]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={[styles.tab, styles.tabActive]}
+                    >
+                        <Text style={[styles.tabText, styles.tabTextActive]}>
+                            {tab.label}
+                        </Text>
+                    </LinearGradient>
+                </TouchableOpacity>
+            );
+        }
 
-    if (loading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#007AFF" />
-            </View>
+            <TouchableOpacity
+                style={styles.tab}
+                onPress={() => setSelectedTab(tab.key)}
+            >
+                <Text style={styles.tabText}>{tab.label}</Text>
+            </TouchableOpacity>
         );
-    }
+    };
 
     return (
         <View style={styles.container}>
-            {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.title}>Emails</Text>
                 <TouchableOpacity
-                    style={styles.syncIconButton}
                     onPress={handleSync}
                     disabled={syncing}
+                    style={styles.syncButton}
                 >
-                    <Text style={styles.syncIcon}>{syncing ? '⏳' : '🔄'}</Text>
+                    {syncing ? (
+                        <ActivityIndicator size="small" color={Colors.primary} />
+                    ) : (
+                        <Text style={styles.syncText}>↻ Sync</Text>
+                    )}
                 </TouchableOpacity>
             </View>
 
-            {/* Urgency Tabs */}
-            <View style={styles.tabs}>
-                {URGENCY_TABS.map((tab) => {
-                    const count =
-                        tab.key === 'all'
-                            ? emails.length
-                            : stats[tab.key.toLowerCase()] || 0;
-
-                    return (
-                        <TouchableOpacity
-                            key={tab.key}
-                            style={[
-                                styles.tab,
-                                selectedTab === tab.key && styles.tabActive,
-                            ]}
-                            onPress={() => setSelectedTab(tab.key)}
-                        >
-                            <Text
-                                style={[
-                                    styles.tabText,
-                                    selectedTab === tab.key && styles.tabTextActive,
-                                ]}
-                            >
-                                {tab.label}
-                            </Text>
-                            {count > 0 ? (
-                                <View style={styles.tabBadge}>
-                                    <Text style={styles.tabBadgeText}>{String(count)}</Text>
-                                </View>
-                            ) : null}
-                        </TouchableOpacity>
-                    );
-                })}
+            <View style={styles.tabsContainer}>
+                {URGENCY_TABS.map((tab) => (
+                    <TabButton key={tab.key} tab={tab} />
+                ))}
             </View>
 
-            {/* Email List */}
-            <FlatList
-                data={emails}
-                renderItem={renderEmailCard}
-                keyExtractor={(item) => item._id}
-                contentContainerStyle={styles.listContent}
-                refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                }
-                ListEmptyComponent={renderEmptyState}
-            />
+            {loading ? (
+                <View style={styles.centerContainer}>
+                    <ActivityIndicator size="large" color={Colors.primary} />
+                </View>
+            ) : (
+                <FlatList
+                    data={filteredEmails}
+                    keyExtractor={(item) => item._id}
+                    renderItem={({ item }) => (
+                        <EmailCard
+                            email={item}
+                            onPress={() => navigation.navigate('EmailDetail', { emailId: item._id })}
+                        />
+                    )}
+                    contentContainerStyle={styles.listContent}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={() => loadEmails(true)} />
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.emptyState}>
+                            <Text style={styles.emptyStateText}>No emails found</Text>
+                        </View>
+                    }
+                />
+            )}
         </View>
     );
 }
@@ -179,75 +179,62 @@ export default function EmailListScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F2F2F7',
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+        backgroundColor: Colors.background,
+        paddingTop: 60,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 16,
-        paddingTop: 60,
-        backgroundColor: '#fff',
+        paddingHorizontal: Spacing.lg,
+        marginBottom: Spacing.md,
     },
     title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#000',
+        fontSize: Typography.h1,
+        fontWeight: Typography.bold,
+        color: Colors.textPrimary,
     },
-    syncIconButton: {
-        padding: 8,
+    syncButton: {
+        padding: Spacing.sm,
     },
-    syncIcon: {
-        fontSize: 24,
+    syncText: {
+        fontSize: Typography.body,
+        color: Colors.primary,
+        fontWeight: Typography.semibold,
     },
-    tabs: {
+    tabsContainer: {
         flexDirection: 'row',
-        backgroundColor: '#fff',
-        paddingHorizontal: 16,
-        paddingBottom: 12,
-        gap: 8,
+        paddingHorizontal: Spacing.lg,
+        marginBottom: Spacing.lg,
+        gap: Spacing.sm,
     },
     tab: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
         paddingVertical: 8,
-        borderRadius: 20,
-        backgroundColor: '#F2F2F7',
-        gap: 6,
+        paddingHorizontal: 16,
+        borderRadius: BorderRadius.pill,
+        backgroundColor: Colors.surface,
+        borderWidth: 1,
+        borderColor: Colors.border,
     },
     tabActive: {
-        backgroundColor: '#007AFF',
+        backgroundColor: Colors.primary, // Fallback
+        borderWidth: 0,
     },
     tabText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#8E8E93',
+        fontSize: Typography.caption,
+        fontWeight: Typography.semibold,
+        color: Colors.textSecondary,
     },
     tabTextActive: {
-        color: '#fff',
-    },
-    tabBadge: {
-        backgroundColor: 'rgba(255,255,255,0.3)',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 10,
-        minWidth: 20,
-        alignItems: 'center',
-    },
-    tabBadgeText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: '#fff',
+        color: Colors.textInverted,
     },
     listContent: {
-        paddingTop: 16,
-        paddingBottom: 24,
+        paddingBottom: Spacing.xl,
+    },
+    centerContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     emptyState: {
         flex: 1,

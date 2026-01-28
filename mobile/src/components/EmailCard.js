@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import UrgencyBadge from './UrgencyBadge';
 import IntentBadge from './IntentBadge';
 
@@ -18,40 +19,70 @@ export default function EmailCard({ email, onPress }) {
         return emailDate.toLocaleDateString();
     };
 
+    const getInitials = (name) => {
+        if (!name) return '?';
+        return name.charAt(0).toUpperCase();
+    };
+
+    const getUrgencyColor = (urgency) => {
+        switch (urgency) {
+            case 'HIGH': return Colors.urgent;
+            case 'MEDIUM': return Colors.high;
+            case 'LOW': return Colors.medium;
+            default: return Colors.textTertiary;
+        }
+    };
+
+    const urgencyColor = getUrgencyColor(email.aiAnalysis?.urgency);
+    const confidence = email.aiAnalysis?.confidenceScore || 0;
+    const confidencePercent = Math.round(confidence * 100);
+
     return (
         <TouchableOpacity
             style={styles.card}
             onPress={onPress}
             activeOpacity={0.7}
         >
-            <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                    <Text style={styles.senderName} numberOfLines={1}>
-                        {email.from?.name || email.from?.email || 'Unknown'}
-                    </Text>
-                    <Text style={styles.time}>{formatTime(email.receivedAt)}</Text>
+            <View style={[styles.accentBar, { backgroundColor: urgencyColor }]} />
+
+            <View style={styles.cardContent}>
+                <View style={styles.header}>
+                    <View style={styles.senderContainer}>
+                        <View style={styles.avatar}>
+                            <Text style={styles.avatarText}>
+                                {getInitials(email.from?.name || email.from?.email)}
+                            </Text>
+                        </View>
+                        <View>
+                            <Text style={styles.senderName} numberOfLines={1}>
+                                {email.from?.name || email.from?.email || 'Unknown'}
+                            </Text>
+                            <Text style={styles.time}>{formatTime(email.receivedAt)}</Text>
+                        </View>
+                    </View>
+
+                    {/* Confidence Ring Indicator */}
+                    <View style={styles.confidenceContainer}>
+                        <View style={[styles.confidenceRing, { borderColor: urgencyColor }]}>
+                            <Text style={[styles.confidenceText, { color: urgencyColor }]}>
+                                {confidencePercent}%
+                            </Text>
+                        </View>
+                    </View>
                 </View>
-                <UrgencyBadge urgency={email.aiAnalysis?.urgency} />
-            </View>
 
-            <Text style={styles.subject} numberOfLines={2}>
-                {email.subject || '(No Subject)'}
-            </Text>
-
-            {/* AI Summary (if available and meaningful) */}
-            {email.aiAnalysis?.summary && email.aiAnalysis.summary.length > 8 ? (
-                <Text style={styles.summary} numberOfLines={2}>
-                    {email.aiAnalysis.summary}
+                <Text style={styles.subject} numberOfLines={1}>
+                    {email.subject || '(No Subject)'}
                 </Text>
-            ) : null}
 
-            <View style={styles.footer}>
-                <IntentBadge intent={email.aiAnalysis?.intent} />
-                {email.aiAnalysis?.confidenceScore ? (
-                    <Text style={styles.confidence}>
-                        {Math.round(email.aiAnalysis.confidenceScore * 100)}% confident
-                    </Text>
-                ) : null}
+                <Text style={styles.summary} numberOfLines={2}>
+                    {email.aiAnalysis?.summary || email.snippet || 'No summary available...'}
+                </Text>
+
+                <View style={styles.footer}>
+                    <UrgencyBadge urgency={email.aiAnalysis?.urgency} mini />
+                    <IntentBadge intent={email.aiAnalysis?.intent} mini />
+                </View>
             </View>
         </TouchableOpacity>
     );
@@ -59,60 +90,88 @@ export default function EmailCard({ email, onPress }) {
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 16,
-        marginHorizontal: 16,
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
+        backgroundColor: Colors.card,
+        borderRadius: BorderRadius.md,
+        marginHorizontal: Spacing.md,
+        marginBottom: Spacing.sm,
+        flexDirection: 'row',
+        overflow: 'hidden',
+        ...Shadows.sm,
+    },
+    accentBar: {
+        width: 4,
+        height: '100%',
+    },
+    cardContent: {
+        flex: 1,
+        padding: Spacing.md,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
+        alignItems: 'flex-start',
+        marginBottom: Spacing.sm,
     },
-    headerLeft: {
-        flex: 1,
+    senderContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: 12,
+        flex: 1,
+    },
+    avatar: {
+        width: 36,
+        height: 36,
+        borderRadius: BorderRadius.circle,
+        backgroundColor: Colors.primaryLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: Spacing.sm,
+    },
+    avatarText: {
+        fontSize: Typography.body,
+        fontWeight: Typography.bold,
+        color: Colors.primary,
     },
     senderName: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#1C1C1E',
-        flex: 1,
-        marginRight: 8,
+        fontSize: Typography.body,
+        fontWeight: Typography.semibold,
+        color: Colors.textPrimary,
+        marginBottom: 2,
     },
     time: {
-        fontSize: 13,
-        color: '#8E8E93',
+        fontSize: Typography.small,
+        color: Colors.textSecondary,
     },
     subject: {
-        fontSize: 17,
-        fontWeight: '600',
-        color: '#000',
-        marginBottom: 8,
-        lineHeight: 22,
+        fontSize: Typography.body,
+        fontWeight: Typography.bold,
+        color: Colors.textPrimary,
+        marginBottom: Spacing.xs,
     },
     summary: {
-        fontSize: 14,
+        fontSize: Typography.caption,
+        color: Colors.textSecondary,
         lineHeight: 20,
-        color: '#3C3C43',
-        marginBottom: 12,
+        marginBottom: Spacing.sm,
     },
     footer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: Spacing.sm,
     },
-    confidence: {
-        fontSize: 12,
-        color: '#8E8E93',
+    confidenceContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    confidenceRing: {
+        width: 32,
+        height: 32,
+        borderRadius: BorderRadius.circle,
+        borderWidth: 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    confidenceText: {
+        fontSize: 10,
+        fontWeight: 'bold',
     },
 });

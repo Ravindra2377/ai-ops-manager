@@ -2,155 +2,198 @@ import React, { useState } from 'react';
 import {
     View,
     Text,
-    TouchableOpacity,
     StyleSheet,
+    TextInput,
     Alert,
-    ActivityIndicator,
-    Linking,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    TouchableOpacity,
 } from 'react-native';
-import { authAPI } from '../services/api';
-import { getUserData } from '../utils/storage';
+import { LinearGradient } from 'expo-linear-gradient';
+import { authAPI } from '../api';
+import Button from '../components/Button';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 
 export default function ConnectGmailScreen({ navigation }) {
+    const [email, setEmail] = useState('');
+    const [appPassword, setAppPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const handleConnectGmail = async () => {
+    const handleConnect = async () => {
+        if (!email || !appPassword) {
+            Alert.alert('Error', 'Please fill in all fields');
+            return;
+        }
+
         setLoading(true);
-
         try {
-            const userData = await getUserData();
-            const response = await authAPI.getGmailAuthUrl(userData.id);
-
-            if (response.data.success) {
-                // Open Gmail OAuth URL in browser
-                await Linking.openURL(response.data.authUrl);
-
-                // Show instructions
-                Alert.alert(
-                    'Connect Gmail',
-                    'Please complete the Gmail authorization in your browser. After authorization, return to the app.',
-                    [
-                        {
-                            text: 'I\'ve Connected',
-                            onPress: () => navigation.replace('Dashboard'),
-                        },
-                        {
-                            text: 'Cancel',
-                            style: 'cancel',
-                        },
-                    ]
-                );
-            }
+            await authAPI.connectGmail({ email, appPassword });
+            Alert.alert('Success', 'Gmail account connected successfully!');
+            navigation.goBack();
         } catch (error) {
-            Alert.alert('Error', 'Failed to get Gmail authorization URL');
+            Alert.alert('Error', error.response?.data?.message || 'Failed to connect account');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSkip = () => {
-        Alert.alert(
-            'Skip Gmail Connection',
-            'You can connect Gmail later from Settings. The app will have limited functionality without Gmail.',
-            [
-                {
-                    text: 'Connect Now',
-                    style: 'cancel',
-                },
-                {
-                    text: 'Skip',
-                    onPress: () => navigation.replace('Dashboard'),
-                },
-            ]
-        );
-    };
-
     return (
-        <View style={styles.container}>
-            <View style={styles.content}>
-                <Text style={styles.title}>Connect Gmail</Text>
-                <Text style={styles.subtitle}>
-                    Connect your Gmail account to let AI analyze your emails and suggest
-                    actions
-                </Text>
+        <LinearGradient
+            colors={[Colors.surface, Colors.primaryLight]}
+            style={styles.container}
+        >
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.keyboardView}
+            >
+                <ScrollView contentContainerStyle={styles.scrollContent}>
+                    <View style={styles.header}>
+                        <View style={styles.iconContainer}>
+                            <Text style={styles.icon}>📧</Text>
+                        </View>
+                        <Text style={styles.title}>Connect Gmail</Text>
+                        <Text style={styles.subtitle}>
+                            Let AI organize your inbox. Use an App Password for secure access.
+                        </Text>
+                    </View>
 
-                <View style={styles.features}>
-                    <Text style={styles.featureItem}>✓ AI analyzes email intent</Text>
-                    <Text style={styles.featureItem}>✓ Priority classification</Text>
-                    <Text style={styles.featureItem}>✓ Smart action suggestions</Text>
-                    <Text style={styles.featureItem}>✓ Draft reply generation</Text>
-                </View>
+                    <View style={styles.form}>
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>Gmail Address</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="you@company.com"
+                                placeholderTextColor={Colors.textTertiary}
+                                value={email}
+                                onChangeText={setEmail}
+                                autoCapitalize="none"
+                                keyboardType="email-address"
+                            />
+                        </View>
 
-                <TouchableOpacity
-                    style={[styles.button, loading && styles.buttonDisabled]}
-                    onPress={handleConnectGmail}
-                    disabled={loading}
-                >
-                    {loading ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <Text style={styles.buttonText}>Connect Gmail</Text>
-                    )}
-                </TouchableOpacity>
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>App Password</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="16-character app password"
+                                placeholderTextColor={Colors.textTertiary}
+                                value={appPassword}
+                                onChangeText={setAppPassword}
+                                secureTextEntry={false}
+                            />
+                            <Text style={styles.helperText}>
+                                Generate this in your Google Account settings under Security {'>'} 2-Step Verification {'>'} App Passwords.
+                            </Text>
+                        </View>
 
-                <TouchableOpacity onPress={handleSkip} disabled={loading}>
-                    <Text style={styles.skipText}>Skip for now</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
+                        <Button
+                            title="Connect Account"
+                            onPress={handleConnect}
+                            loading={loading}
+                            variant="primary"
+                            fullWidth
+                            style={styles.button}
+                        />
+
+                        <TouchableOpacity
+                            onPress={() => navigation.goBack()}
+                            style={styles.skipButton}
+                        >
+                            <Text style={styles.skipText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
     },
-    content: {
+    keyboardView: {
         flex: 1,
+    },
+    scrollContent: {
+        flexGrow: 1,
         justifyContent: 'center',
-        padding: 24,
+        padding: Spacing.xl,
+    },
+    header: {
+        alignItems: 'center',
+        marginBottom: Spacing.xl,
+    },
+    iconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: BorderRadius.circle,
+        backgroundColor: Colors.surface,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Spacing.lg,
+        ...Shadows.md,
+    },
+    icon: {
+        fontSize: 40,
     },
     title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#1a1a1a',
-        marginBottom: 8,
+        fontSize: Typography.h1,
+        fontWeight: Typography.bold,
+        color: Colors.textPrimary,
+        marginBottom: Spacing.sm,
+        textAlign: 'center',
     },
     subtitle: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 32,
-        lineHeight: 24,
+        fontSize: Typography.body,
+        color: Colors.textSecondary,
+        textAlign: 'center',
+        maxWidth: 300,
     },
-    features: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 20,
-        marginBottom: 32,
-        gap: 12,
+    form: {
+        width: '100%',
+        backgroundColor: Colors.background,
+        borderRadius: BorderRadius.xl,
+        padding: Spacing.lg,
+        ...Shadows.lg,
     },
-    featureItem: {
-        fontSize: 16,
-        color: '#333',
+    inputContainer: {
+        marginBottom: Spacing.lg,
+    },
+    label: {
+        fontSize: Typography.caption,
+        fontWeight: Typography.semibold,
+        color: Colors.textSecondary,
+        marginBottom: Spacing.sm,
+        marginLeft: Spacing.xs,
+    },
+    input: {
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.md,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.md,
+        fontSize: Typography.body,
+        color: Colors.textPrimary,
+        borderWidth: 1,
+        borderColor: Colors.border,
+    },
+    helperText: {
+        fontSize: Typography.tiny,
+        color: Colors.textTertiary,
+        marginTop: Spacing.xs,
+        marginLeft: Spacing.xs,
     },
     button: {
-        backgroundColor: '#007AFF',
-        borderRadius: 12,
-        padding: 16,
+        marginTop: Spacing.sm,
+        marginBottom: Spacing.md,
+    },
+    skipButton: {
         alignItems: 'center',
-    },
-    buttonDisabled: {
-        opacity: 0.6,
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
+        padding: Spacing.sm,
     },
     skipText: {
-        color: '#666',
-        textAlign: 'center',
-        marginTop: 16,
+        fontSize: Typography.body,
+        color: Colors.textSecondary,
     },
 });

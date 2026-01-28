@@ -2,114 +2,119 @@ import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
+    StyleSheet,
     FlatList,
     TouchableOpacity,
-    StyleSheet,
     RefreshControl,
     ActivityIndicator,
     Alert,
 } from 'react-native';
-import { taskAPI } from '../services/api';
+import { LinearGradient } from 'expo-linear-gradient';
+import { taskAPI } from '../api';
+import PriorityBadge from '../components/PriorityBadge';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 
-const STATUS_TABS = [
-    { key: 'all', label: 'All' },
-    { key: 'pending', label: 'Pending' },
-    { key: 'completed', label: 'Done' },
+const STATUS_Tabs = [
+    { key: 'ALL', label: 'All' },
+    { key: 'PENDING', label: 'Pending' },
+    { key: 'COMPLETED', label: 'Done' },
 ];
 
 export default function TaskListScreen({ navigation }) {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [selectedTab, setSelectedTab] = useState('all');
-
-    useEffect(() => {
-        loadTasks();
-    }, [selectedTab]);
+    const [selectedTab, setSelectedTab] = useState('PENDING');
 
     const loadTasks = async () => {
         try {
-            const filters = selectedTab !== 'all' ? { status: selectedTab } : {};
-            const response = await taskAPI.getAll(filters);
-
-            if (response.data.success) {
-                setTasks(response.data.tasks);
-            }
+            setLoading(true);
+            const data = await taskAPI.getAll();
+            setTasks(data);
         } catch (error) {
-            console.error('Error loading tasks:', error);
-            Alert.alert('Error', 'Failed to load tasks');
+            console.error('Failed to load tasks:', error);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
     };
 
+    useEffect(() => {
+        loadTasks();
+    }, []);
+
     const handleToggleComplete = async (taskId, currentStatus) => {
         try {
-            const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+            const newStatus = currentStatus === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
+
+            // Optimistic update
+            setTasks(tasks.map(t =>
+                t._id === taskId ? { ...t, status: newStatus } : t
+            ));
+
             await taskAPI.update(taskId, { status: newStatus });
-            loadTasks();
         } catch (error) {
-            Alert.alert('Error', 'Failed to update task');
+            console.error('Failed to update task:', error);
+            Alert.alert('Error', 'Failed to update task status');
+            // Revert on error
+            loadTasks();
         }
     };
 
-    const onRefresh = () => {
-        setRefreshing(true);
-        loadTasks();
+    const filteredTasks = tasks.filter(task => {
+        if (selectedTab === 'ALL') return true;
+        return task.status === selectedTab;
+    });
+
+    const getPriorityColor = (priority) => {
+        switch (priority) {
+            case 'HIGH': return Colors.urgent;
+            case 'MEDIUM': return Colors.high;
+            case 'LOW': return Colors.medium;
+            default: return Colors.textTertiary;
+        }
     };
 
-    const renderTaskCard = ({ item }) => {
-        const isCompleted = item.status === 'completed';
-        const priorityColor = {
-            high: '#FF3B30',
-            medium: '#FF9500',
-            low: '#34C759',
-        }[item.priority] || '#8E8E93';
+    const TaskCard = ({ item }) => {
+        const isCompleted = item.status === 'COMPLETED';
+        const priorityColor = getPriorityColor(item.priority);
 
         return (
             <TouchableOpacity
-                style={styles.taskCard}
+                style={[styles.card, isCompleted && styles.cardCompleted]}
                 onPress={() => navigation.navigate('TaskDetail', { taskId: item._id })}
                 activeOpacity={0.7}
             >
-                <View style={styles.taskHeader}>
+                <View style={[styles.accentBar, { backgroundColor: isCompleted ? Colors.success : priorityColor }]} />
+
+                <View style={styles.cardContent}>
                     <TouchableOpacity
-                        style={[
-                            styles.checkbox,
-                            isCompleted && styles.checkboxCompleted,
-                        ]}
+                        style={[styles.checkbox, isCompleted && styles.checkboxChecked]}
                         onPress={() => handleToggleComplete(item._id, item.status)}
                     >
-                        {isCompleted ? <Text style={styles.checkmark}>✓</Text> : null}
+                        {isCompleted && <Text style={styles.checkmark}>✓</Text>}
                     </TouchableOpacity>
 
-                    <View style={styles.taskContent}>
+                    <View style={styles.taskInfo}>
                         <Text
-                            style={[
-                                styles.taskTitle,
-                                isCompleted && styles.taskTitleCompleted,
-                            ]}
-                            numberOfLines={2}
+                            style={[styles.taskTitle, isCompleted && styles.taskTitleCompleted]}
+                            numberOfLines={1}
                         >
                             {item.title}
                         </Text>
-                        {item.description ? (
-                            <Text style={styles.taskDescription} numberOfLines={1}>
-                                {item.description}
-                            </Text>
-                        ) : null}
+
                         <View style={styles.taskMeta}>
-                            <View
-                                style={[styles.priorityBadge, { backgroundColor: priorityColor }]}
-                            >
-                                <Text style={styles.priorityText}>
-                                    {item.priority.toUpperCase()}
+                            <PriorityBadge priority={item.priority} mini />
+                            {item.source === 'EMAIL' && (
+                                <View style={styles.aiTag}>
+                                    <Text style={styles.aiTagText}>🤖 AI</Text>
+                                </View>
+                            )}
+                            {item.dueDate && (
+                                <Text style={styles.dueDate}>
+                                    📅 {new Date(item.dueDate).toLocaleDateString()}
                                 </Text>
-                            </View>
-                            {item.createdBy === 'ai' ? (
-                                <Text style={styles.aiTag}>🤖 AI</Text>
-                            ) : null}
+                            )}
                         </View>
                     </View>
                 </View>
@@ -117,34 +122,41 @@ export default function TaskListScreen({ navigation }) {
         );
     };
 
-    const renderEmptyState = () => (
-        <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>No Tasks</Text>
-            <Text style={styles.emptyText}>
-                {selectedTab === 'all'
-                    ? 'Create tasks from emails or add manually'
-                    : `No ${selectedTab} tasks`}
-            </Text>
-            <TouchableOpacity
-                style={styles.createButton}
-                onPress={() => navigation.navigate('TaskDetail', { taskId: null })}
-            >
-                <Text style={styles.createButtonText}>+ Create Task</Text>
-            </TouchableOpacity>
-        </View>
-    );
+    const TabButton = ({ tab }) => {
+        const isActive = selectedTab === tab.key;
 
-    if (loading) {
+        if (isActive) {
+            return (
+                <TouchableOpacity
+                    onPress={() => setSelectedTab(tab.key)}
+                    activeOpacity={0.8}
+                >
+                    <LinearGradient
+                        colors={[Colors.gradientPrimaryStart, Colors.gradientPrimaryEnd]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={[styles.tab, styles.tabActive]}
+                    >
+                        <Text style={[styles.tabText, styles.tabTextActive]}>
+                            {tab.label}
+                        </Text>
+                    </LinearGradient>
+                </TouchableOpacity>
+            );
+        }
+
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#007AFF" />
-            </View>
+            <TouchableOpacity
+                style={styles.tab}
+                onPress={() => setSelectedTab(tab.key)}
+            >
+                <Text style={styles.tabText}>{tab.label}</Text>
+            </TouchableOpacity>
         );
-    }
+    };
 
     return (
         <View style={styles.container}>
-            {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.title}>Tasks</Text>
                 <TouchableOpacity
@@ -155,52 +167,32 @@ export default function TaskListScreen({ navigation }) {
                 </TouchableOpacity>
             </View>
 
-            {/* Status Tabs */}
-            <View style={styles.tabs}>
-                {STATUS_TABS.map((tab) => {
-                    const count =
-                        tab.key === 'all'
-                            ? tasks.length
-                            : tasks.filter((t) => t.status === tab.key).length;
-
-                    return (
-                        <TouchableOpacity
-                            key={tab.key}
-                            style={[
-                                styles.tab,
-                                selectedTab === tab.key && styles.tabActive,
-                            ]}
-                            onPress={() => setSelectedTab(tab.key)}
-                        >
-                            <Text
-                                style={[
-                                    styles.tabText,
-                                    selectedTab === tab.key && styles.tabTextActive,
-                                ]}
-                            >
-                                {tab.label}
-                            </Text>
-                            {count > 0 ? (
-                                <View style={styles.tabBadge}>
-                                    <Text style={styles.tabBadgeText}>{String(count)}</Text>
-                                </View>
-                            ) : null}
-                        </TouchableOpacity>
-                    );
-                })}
+            <View style={styles.tabsContainer}>
+                {STATUS_Tabs.map((tab) => (
+                    <TabButton key={tab.key} tab={tab} />
+                ))}
             </View>
 
-            {/* Task List */}
-            <FlatList
-                data={tasks}
-                renderItem={renderTaskCard}
-                keyExtractor={(item) => item._id}
-                contentContainerStyle={styles.listContent}
-                refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                }
-                ListEmptyComponent={renderEmptyState}
-            />
+            {loading && !refreshing ? (
+                <View style={styles.centerContainer}>
+                    <ActivityIndicator size="large" color={Colors.primary} />
+                </View>
+            ) : (
+                <FlatList
+                    data={filteredTasks}
+                    keyExtractor={(item) => item._id}
+                    renderItem={({ item }) => <TaskCard item={item} />}
+                    contentContainerStyle={styles.listContent}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadTasks(); }} />
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.emptyState}>
+                            <Text style={styles.emptyStateText}>No tasks found</Text>
+                        </View>
+                    }
+                />
+            )}
         </View>
     );
 }
@@ -208,182 +200,150 @@ export default function TaskListScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F2F2F7',
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+        backgroundColor: Colors.background,
+        paddingTop: 60,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 16,
-        paddingTop: 60,
-        backgroundColor: '#fff',
+        paddingHorizontal: Spacing.lg,
+        marginBottom: Spacing.md,
     },
     title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#000',
+        fontSize: Typography.h1,
+        fontWeight: Typography.bold,
+        color: Colors.textPrimary,
     },
     addButton: {
         width: 40,
         height: 40,
-        borderRadius: 20,
-        backgroundColor: '#007AFF',
-        justifyContent: 'center',
+        borderRadius: BorderRadius.circle,
+        backgroundColor: Colors.primaryLight,
         alignItems: 'center',
+        justifyContent: 'center',
     },
     addButtonText: {
         fontSize: 24,
-        color: '#fff',
+        color: Colors.primary,
         fontWeight: '300',
+        marginTop: -2,
     },
-    tabs: {
+    tabsContainer: {
         flexDirection: 'row',
-        backgroundColor: '#fff',
-        paddingHorizontal: 16,
-        paddingBottom: 12,
-        gap: 8,
+        paddingHorizontal: Spacing.lg,
+        marginBottom: Spacing.lg,
+        gap: Spacing.sm,
     },
     tab: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
         paddingVertical: 8,
-        borderRadius: 20,
-        backgroundColor: '#F2F2F7',
-        gap: 6,
+        paddingHorizontal: 16,
+        borderRadius: BorderRadius.pill,
+        backgroundColor: Colors.surface,
+        borderWidth: 1,
+        borderColor: Colors.border,
     },
     tabActive: {
-        backgroundColor: '#007AFF',
+        backgroundColor: Colors.primary,
+        borderWidth: 0,
     },
     tabText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#8E8E93',
+        fontSize: Typography.caption,
+        fontWeight: Typography.semibold,
+        color: Colors.textSecondary,
     },
     tabTextActive: {
-        color: '#fff',
-    },
-    tabBadge: {
-        backgroundColor: 'rgba(255,255,255,0.3)',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 10,
-        minWidth: 20,
-        alignItems: 'center',
-    },
-    tabBadgeText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: '#fff',
+        color: Colors.textInverted,
     },
     listContent: {
-        paddingTop: 16,
-        paddingBottom: 24,
+        paddingBottom: Spacing.xl,
     },
-    taskCard: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 16,
-        marginHorizontal: 16,
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
+    centerContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    taskHeader: {
+    card: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
+        backgroundColor: Colors.card,
+        borderRadius: BorderRadius.md,
+        marginHorizontal: Spacing.lg,
+        marginBottom: Spacing.md,
+        overflow: 'hidden',
+        ...Shadows.sm,
+    },
+    cardCompleted: {
+        opacity: 0.7,
+    },
+    accentBar: {
+        width: 4,
+        height: '100%',
+    },
+    cardContent: {
+        flex: 1,
+        flexDirection: 'row',
+        padding: Spacing.md,
+        alignItems: 'center',
     },
     checkbox: {
         width: 24,
         height: 24,
         borderRadius: 12,
         borderWidth: 2,
-        borderColor: '#007AFF',
-        marginRight: 12,
-        justifyContent: 'center',
+        borderColor: Colors.textTertiary,
         alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: Spacing.md,
     },
-    checkboxCompleted: {
-        backgroundColor: '#007AFF',
+    checkboxChecked: {
+        backgroundColor: Colors.success,
+        borderColor: Colors.success,
     },
     checkmark: {
-        color: '#fff',
+        color: '#FFF',
         fontSize: 14,
         fontWeight: 'bold',
     },
-    taskContent: {
+    taskInfo: {
         flex: 1,
     },
     taskTitle: {
-        fontSize: 17,
-        fontWeight: '600',
-        color: '#000',
-        marginBottom: 4,
+        fontSize: Typography.body,
+        fontWeight: Typography.semibold,
+        color: Colors.textPrimary,
+        marginBottom: 6,
     },
     taskTitleCompleted: {
         textDecorationLine: 'line-through',
-        color: '#8E8E93',
-    },
-    taskDescription: {
-        fontSize: 14,
-        color: '#8E8E93',
-        marginBottom: 8,
+        color: Colors.textTertiary,
     },
     taskMeta: {
         flexDirection: 'row',
         alignItems: 'center',
+        flexWrap: 'wrap',
         gap: 8,
     },
-    priorityBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
-    },
-    priorityText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: '#fff',
-    },
     aiTag: {
-        fontSize: 12,
-        color: '#8E8E93',
+        backgroundColor: Colors.aiGlow + '30',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+    },
+    aiTagText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: Colors.ai,
+    },
+    dueDate: {
+        fontSize: Typography.small,
+        color: Colors.textSecondary,
     },
     emptyState: {
-        flex: 1,
-        justifyContent: 'center',
+        padding: Spacing.xl,
         alignItems: 'center',
-        paddingHorizontal: 32,
-        paddingTop: 100,
     },
-    emptyTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1C1C1E',
-        marginBottom: 8,
-    },
-    emptyText: {
-        fontSize: 16,
-        color: '#8E8E93',
-        textAlign: 'center',
-        marginBottom: 24,
-    },
-    createButton: {
-        backgroundColor: '#007AFF',
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 12,
-    },
-    createButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
+    emptyStateText: {
+        fontSize: Typography.body,
+        color: Colors.textSecondary,
     },
 });

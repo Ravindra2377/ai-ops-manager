@@ -92,162 +92,141 @@ export default function LoginScreen({ navigation }) {
 
             Alert.alert('Error', message);
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
 
-    const toggleMode = () => {
-        setIsLogin(!isLogin);
-        // Clear confirm password when switching modes
-        setConfirmPassword('');
-    };
-
     return (
-        <KeyboardAvoidingView
+        <LinearGradient
+            colors={[Colors.gradientPrimaryStart, Colors.gradientPrimaryEnd]}
             style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.keyboardView}
             >
-                <View style={styles.content}>
+                <View style={styles.glassCard}>
                     <Text style={styles.title}>AI Ops Manager</Text>
                     <Text style={styles.subtitle}>
                         Your personal AI decision assistant
                     </Text>
 
                     <View style={styles.form}>
-                        {!isLogin && (
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>Email Address</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Full Name"
-                                placeholderTextColor={Colors.placeholder}
-                                value={name}
-                                onChangeText={setName}
-                                autoCapitalize="words"
-                                editable={!loading}
+                                placeholder="name@company.com"
+                                placeholderTextColor={Colors.textTertiary}
+                                value={email}
+                                onChangeText={setEmail}
+                                autoCapitalize="none"
+                                keyboardType="email-address"
                             />
-                        )}
+                        </View>
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Email"
-                            placeholderTextColor={Colors.placeholder}
-                            value={email}
-                            onChangeText={setEmail}
-                            autoCapitalize="none"
-                            keyboardType="email-address"
-                            editable={!loading}
-                        />
-
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Password"
-                            placeholderTextColor={Colors.placeholder}
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                            editable={!loading}
-                        />
-
-                        {!isLogin && (
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>Password</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Confirm Password"
-                                placeholderTextColor={Colors.placeholder}
-                                value={confirmPassword}
-                                onChangeText={setConfirmPassword}
+                                placeholder="••••••••"
+                                placeholderTextColor={Colors.textTertiary}
+                                value={password}
+                                onChangeText={setPassword}
                                 secureTextEntry
-                                editable={!loading}
                             />
-                        )}
+                        </View>
+
+                        <Button
+                            title={mode === 'login' ? 'Login' : 'Create Account'}
+                            onPress={handleSubmit}
+                            loading={isLoading}
+                            variant="primary"
+                            fullWidth
+                            style={styles.submitButton}
+                        />
 
                         <TouchableOpacity
-                            style={[styles.button, loading && styles.buttonDisabled]}
-                            onPress={handleAuth}
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <Text style={styles.buttonText}>
-                                    {isLogin ? 'Login' : 'Register'}
-                                </Text>
-                            )}
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            onPress={toggleMode}
-                            disabled={loading}
+                            onPress={() => setMode(mode === 'login' ? 'register' : 'login')}
+                            style={styles.switchButton}
                         >
                             <Text style={styles.switchText}>
-                                {isLogin
+                                {mode === 'login'
                                     ? "Don't have an account? Register"
-                                    : 'Already have an account? Login'}
+                                    : "Already have an account? Login"}
                             </Text>
                         </TouchableOpacity>
                     </View>
                 </View>
-            </ScrollView>
-        </KeyboardAvoidingView>
+            </KeyboardAvoidingView>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
     },
-    scrollContent: {
-        flexGrow: 1,
-    },
-    content: {
+    keyboardView: {
         flex: 1,
         justifyContent: 'center',
-        padding: 24,
-        paddingTop: 60,
+        alignItems: 'center',
+        padding: Spacing.lg,
+    },
+    glassCard: {
+        width: '100%',
+        maxWidth: 400,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderRadius: BorderRadius.xl,
+        padding: Spacing.xl,
+        ...Shadows.lg,
+        alignItems: 'center',
     },
     title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#1a1a1a',
-        marginBottom: 8,
+        fontSize: Typography.h1,
+        fontWeight: Typography.bold,
+        color: Colors.primary,
+        marginBottom: Spacing.xs,
+        textAlign: 'center',
     },
     subtitle: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 40,
+        fontSize: Typography.body,
+        color: Colors.textSecondary,
+        marginBottom: Spacing.xl,
+        textAlign: 'center',
     },
     form: {
-        gap: 16,
+        width: '100%',
+    },
+    inputContainer: {
+        marginBottom: Spacing.lg,
+    },
+    label: {
+        fontSize: Typography.caption,
+        fontWeight: Typography.semibold,
+        color: Colors.textSecondary,
+        marginBottom: Spacing.sm,
+        marginLeft: Spacing.xs,
     },
     input: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 16,
-        fontSize: 16,
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.md,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.md,
+        fontSize: Typography.body,
+        color: Colors.textPrimary,
         borderWidth: 1,
-        borderColor: '#e0e0e0',
+        borderColor: Colors.border,
     },
-    button: {
-        backgroundColor: '#007AFF',
-        borderRadius: 12,
-        padding: 16,
+    submitButton: {
+        marginTop: Spacing.md,
+        marginBottom: Spacing.lg,
+    },
+    switchButton: {
         alignItems: 'center',
-        marginTop: 8,
-    },
-    buttonDisabled: {
-        opacity: 0.6,
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
     },
     switchText: {
-        color: '#007AFF',
-        textAlign: 'center',
-        marginTop: 8,
+        fontSize: Typography.body,
+        color: Colors.textSecondary,
     },
 });
