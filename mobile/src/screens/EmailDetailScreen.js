@@ -7,10 +7,9 @@ import {
     ActivityIndicator,
     Alert,
     TouchableOpacity,
-    Clipboard,
-    Platform,
     Dimensions,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { WebView } from 'react-native-webview';
 import { emailAPI } from '../services/api';
