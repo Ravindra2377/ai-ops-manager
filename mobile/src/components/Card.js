@@ -13,8 +13,8 @@ export default function Card({ children, style }) {
 const styles = StyleSheet.create({
     card: {
         backgroundColor: Colors.card,
-        borderRadius: BorderRadius.medium,
+        borderRadius: BorderRadius.md,
         padding: Spacing.md,
-        ...Shadows.small,
+        ...Shadows.sm,
     },
 });

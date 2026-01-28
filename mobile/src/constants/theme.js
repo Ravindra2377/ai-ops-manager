@@ -82,6 +82,7 @@ export const BorderRadius = {
     lg: 16,
     xl: 24,
     pill: 999,
+    circle: 9999, // For circular elements
 };
 
 export const Shadows = {
