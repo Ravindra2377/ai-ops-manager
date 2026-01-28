@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { authAPI } from '../services/api';
 import { saveToken, saveUserData } from '../utils/storage';
 import { useAuth } from '../context/AuthContext';
-import { Colors, Typography, BorderRadius, Spacing } from '../constants/theme';
+import { Colors, Typography, BorderRadius, Spacing, Shadows } from '../constants/theme';
 
 export default function LoginScreen({ navigation }) {
     const { login: contextLogin } = useAuth();
@@ -138,20 +138,20 @@ export default function LoginScreen({ navigation }) {
                         </View>
 
                         <Button
-                            title={mode === 'login' ? 'Login' : 'Create Account'}
-                            onPress={handleSubmit}
-                            loading={isLoading}
+                            title={isLogin ? 'Login' : 'Create Account'}
+                            onPress={handleAuth}
+                            loading={loading}
                             variant="primary"
                             fullWidth
                             style={styles.submitButton}
                         />
 
                         <TouchableOpacity
-                            onPress={() => setMode(mode === 'login' ? 'register' : 'login')}
+                            onPress={() => setIsLogin(!isLogin)}
                             style={styles.switchButton}
                         >
                             <Text style={styles.switchText}>
-                                {mode === 'login'
+                                {isLogin
                                     ? "Don't have an account? Register"
                                     : "Already have an account? Login"}
                             </Text>

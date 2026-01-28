@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -7,34 +7,61 @@ import {
     StyleSheet,
     RefreshControl,
     ActivityIndicator,
+    Animated,
+    Image,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { dashboardAPI } from '../services/api';
-import { getToken } from '../utils/storage';
-
-const API_URL = 'https://ai-ops-manager-api.onrender.com';
+import { useAuth } from '../context/AuthContext';
+import Button from '../components/Button';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 
 export default function DashboardScreen({ navigation }) {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [stats, setStats] = useState(null);
-    const [reminders, setReminders] = useState([]);
+    const [stats, setStats] = useState({
+        emailsPending: 0,
+        highPriorityEmails: 0,
+        tasksPending: 0,
+        reminders: []
+    });
+
+    // Animation for AI pulse
+    const pulseAnim = useRef(new Animated.Value(0.4)).current;
 
     useEffect(() => {
+        startPulse();
         loadDashboard();
-        loadReminders();
     }, []);
+
+    const startPulse = () => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, {
+                    toValue: 1,
+                    duration: 1500,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(pulseAnim, {
+                    toValue: 0.4,
+                    duration: 1500,
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
+    };
 
     const loadDashboard = async () => {
         try {
-            const statsRes = await dashboardAPI.getStats();
-            setStats(statsRes.data.stats);
+            const response = await dashboardAPI.getStats();
+            if (response.data && response.data.stats) {
+                setStats(response.data.stats);
+            }
         } catch (error) {
             console.error('Error loading dashboard:', error);
-            // Set default stats on error
-            setStats({
-                emails: { total: 0, pending: 0, highUrgency: 0 },
-                tasks: { total: 0, pending: 0, completed: 0 }
-            });
+            // Keep default stats on error to prevent crash
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -44,47 +71,57 @@ export default function DashboardScreen({ navigation }) {
     const onRefresh = () => {
         setRefreshing(true);
         loadDashboard();
-        loadReminders();
     };
 
-    const loadReminders = async () => {
-        try {
-            const token = await getToken();
-            const response = await fetch(`${API_URL}/api/reminders?status=triggered`, {
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
-            const data = await response.json();
-            if (data.success) {
-                setReminders(data.reminders || []);
-            }
-        } catch (error) {
-            console.error('Error loading reminders:', error);
-        }
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'Good Morning';
+        if (hour < 18) return 'Good Afternoon';
+        return 'Good Evening';
     };
 
-    if (loading) {
-        return (
-            <TouchableOpacity onPress={onPress} style={styles.statCardContainer}>
-                <Wrapper {...wrapperProps}>
-                    <View style={[styles.statCard, urgent && styles.urgentStatCard]}>
-                        <Text style={[styles.statValue, urgent && styles.urgentStatValue]}>
-                            {value}
-                        </Text>
+    // Component for Stat Cards
+    const StatCard = ({ label, value, urgent, onPress }) => (
+        <TouchableOpacity
+            onPress={onPress}
+            activeOpacity={0.8}
+            style={{ flex: 1 }}
+        >
+            <View style={[
+                styles.statCardWrapper,
+                urgent && styles.urgentWrapper
+            ]}>
+                {urgent ? (
+                    <LinearGradient
+                        colors={[Colors.gradientUrgentStart, Colors.gradientUrgentEnd]}
+                        style={styles.gradientBorder}
+                    >
+                        <View style={styles.statCardInner}>
+                            <Text style={[styles.statValue, { color: Colors.urgent }]}>{value}</Text>
+                            <Text style={styles.statLabel}>{label}</Text>
+                        </View>
+                    </LinearGradient>
+                ) : (
+                    <View style={styles.statCardInner}>
+                        <Text style={styles.statValue}>{value}</Text>
                         <Text style={styles.statLabel}>{label}</Text>
-                        {urgent && (
-                            <View style={styles.urgentIcon}>
-                                <Text>🔥</Text>
-                            </View>
-                        )}
                     </View>
-                </Wrapper>
-            </TouchableOpacity>
+                )}
+            </View>
+        </TouchableOpacity>
+    );
+
+    if (loading && !refreshing) {
+        return (
+            <View style={styles.centerContainer}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
         );
-    };
+    }
 
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+            <StatusBar style="dark" backgroundColor={Colors.background} />
             <ScrollView
                 contentContainerStyle={styles.content}
                 refreshControl={
@@ -95,10 +132,12 @@ export default function DashboardScreen({ navigation }) {
                 <View style={styles.heroSection}>
                     <View>
                         <Text style={styles.greeting}>{getGreeting()},</Text>
-                        <Text style={styles.userName}>User</Text>
+                        <Text style={styles.userName}>{user?.name?.split(' ')[0] || 'User'}</Text>
                     </View>
                     <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>U</Text>
+                        <Text style={styles.avatarText}>
+                            {user?.name?.charAt(0).toUpperCase() || 'U'}
+                        </Text>
                     </View>
                 </View>
 
@@ -114,31 +153,33 @@ export default function DashboardScreen({ navigation }) {
                 <View style={styles.statsRow}>
                     <StatCard
                         label="Pending Emails"
-                        value={stats.emailsPending}
+                        value={stats.emailsPending || 0}
                         onPress={() => navigation.navigate('Emails')}
                     />
+                    <View style={{ width: Spacing.sm }} />
                     <StatCard
                         label="High Priority"
-                        value={stats.highPriorityEmails}
-                        urgent={stats.highPriorityEmails > 0}
+                        value={stats.highPriorityEmails || 0}
+                        urgent={(stats.highPriorityEmails || 0) > 0}
                         onPress={() => navigation.navigate('Emails', { filter: 'HIGH' })}
                     />
+                    <View style={{ width: Spacing.sm }} />
                     <StatCard
                         label="Pending Tasks"
-                        value={stats.tasksPending}
+                        value={stats.tasksPending || 0}
                         onPress={() => navigation.navigate('Tasks')}
                     />
                 </View>
 
                 {/* Reminders Section */}
-                {stats.reminders.length > 0 && (
+                {stats.reminders && stats.reminders.length > 0 && (
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Reminders</Text>
-                        {stats.reminders.map((reminder) => (
+                        {stats.reminders.map((reminder, index) => (
                             <TouchableOpacity
-                                key={reminder.id}
+                                key={reminder.id || index}
                                 style={styles.reminderCard}
-                                onPress={() => navigation.navigate('EmailDetail', { emailId: reminder.emailId })}
+                                onPress={() => reminder.emailId && navigation.navigate('EmailDetail', { emailId: reminder.emailId })}
                             >
                                 <View style={styles.reminderAccent} />
                                 <View style={styles.reminderContent}>
@@ -159,17 +200,15 @@ export default function DashboardScreen({ navigation }) {
                     <Text style={styles.sectionTitle}>Quick Actions</Text>
                     <View style={styles.actionButtons}>
                         <Button
-                            title="View All Emails"
+                            title="All Emails"
                             onPress={() => navigation.navigate('Emails')}
                             variant="primary"
-                            icon={<Text style={{ marginRight: 8, color: '#FFF' }}>✉️</Text>}
                             style={{ flex: 1, marginRight: 8 }}
                         />
                         <Button
-                            title="View Tasks"
+                            title="My Tasks"
                             onPress={() => navigation.navigate('Tasks')}
-                            variant="secondary"
-                            icon={<Text style={{ marginRight: 8, color: Colors.primary }}>✓</Text>}
+                            variant="outline"
                             style={{ flex: 1, marginLeft: 8 }}
                         />
                     </View>
@@ -184,6 +223,11 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.background,
         paddingTop: 60,
+    },
+    centerContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     content: {
         padding: Spacing.lg,
@@ -243,55 +287,42 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginBottom: Spacing.xl,
-        gap: Spacing.sm,
+        height: 100,
     },
-    statCardContainer: {
-        flex: 1,
-        height: 110,
-    },
-    cardWrapper: {
+    statCardWrapper: {
         flex: 1,
         backgroundColor: Colors.card,
         borderRadius: BorderRadius.lg,
         ...Shadows.md,
-        padding: 1, // acts as border width placeholder
+        height: '100%',
     },
-    urgentCardWrapper: {
+    urgentWrapper: {
+        ...Shadows.glow,
+    },
+    gradientBorder: {
         flex: 1,
         borderRadius: BorderRadius.lg,
-        ...Shadows.glow,
-        padding: 1.5, // Gradient border width
+        padding: 1.5,
     },
-    statCard: {
+    statCardInner: {
         flex: 1,
-        backgroundColor: Colors.card, // Inner white background
-        borderRadius: BorderRadius.lg - 1, // Slightly smaller to fit inside border
-        padding: Spacing.sm,
+        backgroundColor: Colors.card,
+        borderRadius: BorderRadius.lg, // Match wrapper radius
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    urgentStatCard: {
-        // Keeps white background inside gradient border
+        padding: Spacing.xs,
+        width: '100%',
     },
     statValue: {
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: Typography.bold,
         color: Colors.textPrimary,
-        marginBottom: 4,
-    },
-    urgentStatValue: {
-        color: Colors.urgent,
+        marginBottom: 2,
     },
     statLabel: {
-        fontSize: Typography.small,
+        fontSize: Typography.tiny,
         color: Colors.textSecondary,
         textAlign: 'center',
-        lineHeight: 14,
-    },
-    urgentIcon: {
-        position: 'absolute',
-        top: 4,
-        right: 4,
     },
     section: {
         marginBottom: Spacing.xl,
@@ -303,8 +334,32 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.md,
     },
     reminderCard: {
-        color: '#FF9500',
-        fontStyle: 'italic',
-        marginTop: 4,
+        flexDirection: 'row',
+        backgroundColor: Colors.card,
+        borderRadius: BorderRadius.md,
+        marginBottom: Spacing.sm,
+        overflow: 'hidden',
+        ...Shadows.sm,
+    },
+    reminderAccent: {
+        width: 4,
+        backgroundColor: Colors.warning,
+    },
+    reminderContent: {
+        padding: Spacing.md,
+        flex: 1,
+    },
+    reminderTitle: {
+        fontSize: Typography.body,
+        color: Colors.textPrimary,
+        marginBottom: 4,
+    },
+    reminderTime: {
+        fontSize: Typography.small,
+        color: Colors.textSecondary,
+    },
+    actionButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
     },
 });
