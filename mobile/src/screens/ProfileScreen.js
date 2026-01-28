@@ -14,7 +14,7 @@ import {
     Platform,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { authAPI } from '../api';
+import { authAPI } from '../services/api';
 import Button from '../components/Button';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 

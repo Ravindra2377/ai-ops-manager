@@ -10,7 +10,7 @@ import {
     Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { taskAPI } from '../api';
+import { taskAPI } from '../services/api';
 import PriorityBadge from '../components/PriorityBadge';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 

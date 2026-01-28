@@ -11,7 +11,7 @@ import {
     TouchableOpacity,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { authAPI } from '../api';
+import { authAPI } from '../services/api';
 import Button from '../components/Button';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 

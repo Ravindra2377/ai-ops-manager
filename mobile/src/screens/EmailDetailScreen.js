@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { WebView } from 'react-native-webview';
-import { emailAPI } from '../api';
+import { emailAPI } from '../services/api';
 import Button from '../components/Button';
 import UrgencyBadge from '../components/UrgencyBadge';
 import IntentBadge from '../components/IntentBadge';
