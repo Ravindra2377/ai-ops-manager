@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
         borderColor: Colors.border,
     },
     copyText: {
-        fontSize: Typography.micro,
+        fontSize: Typography.tiny,
         color: Colors.textSecondary,
     },
     bodyContainer: {

@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
     badge: {
         paddingHorizontal: Spacing.sm,
         paddingVertical: Spacing.xs,
-        borderRadius: BorderRadius.small - 2,
+        borderRadius: BorderRadius.sm - 2,
         alignSelf: 'flex-start',
     },
     text: {
