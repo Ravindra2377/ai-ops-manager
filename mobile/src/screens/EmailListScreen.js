@@ -9,8 +9,10 @@ import {
     ActivityIndicator,
     Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { emailAPI } from '../services/api';
 import EmailCard from '../components/EmailCard';
+import { Colors, Typography, Spacing, BorderRadius } from '../constants/theme';
 
 const URGENCY_TABS = [
     { key: 'all', label: 'All' },
