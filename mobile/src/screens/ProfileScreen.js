@@ -92,7 +92,8 @@ export default function ProfileScreen({ navigation }) {
             }
 
             // Get OAuth URL
-            const authUrl = `${BASE_URL}/api/auth/gmail/authorize?userId=${user.id}&label=${label}&addingAccount=true`;
+            // Fix: Fetch the URL first, then open it (don't open API endpoint directly)
+            const apiEndpoint = `${BASE_URL}/api/auth/gmail/authorize?userId=${user.id}&label=${label}&addingAccount=true`;
 
             Alert.alert(
                 'Add Gmail Account',
@@ -102,9 +103,26 @@ export default function ProfileScreen({ navigation }) {
                     {
                         text: 'Continue',
                         onPress: async () => {
-                            await Linking.openURL(authUrl);
-                            // Reload accounts after a delay
-                            setTimeout(() => loadGmailAccounts(), 3000);
+                            try {
+                                const token = await getToken();
+                                const response = await fetch(apiEndpoint, {
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`
+                                    }
+                                });
+                                const data = await response.json();
+
+                                if (data.success && data.authUrl) {
+                                    await Linking.openURL(data.authUrl);
+                                    // Reload accounts after a delay
+                                    setTimeout(() => loadGmailAccounts(), 3000);
+                                } else {
+                                    Alert.alert('Error', 'Failed to get authorization URL');
+                                }
+                            } catch (err) {
+                                console.error('Error fetching auth URL:', err);
+                                Alert.alert('Error', 'Failed to initiate connection');
+                            }
                         },
                     },
                 ]
