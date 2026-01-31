@@ -34,6 +34,21 @@ export default function EmailCard({ email, onPress }) {
                 <UrgencyBadge urgency={email.aiAnalysis?.urgency} />
             </View>
 
+            {/* Account Label Badge */}
+            {email.accountLabel && (
+                <View style={[
+                    styles.labelBadge,
+                    email.accountLabel === 'Work' ? styles.labelWork : styles.labelPersonal
+                ]}>
+                    <Text style={[
+                        styles.labelText,
+                        email.accountLabel === 'Work' ? styles.labelTextWork : styles.labelTextPersonal
+                    ]}>
+                        {email.accountLabel}
+                    </Text>
+                </View>
+            )}
+
             <Text style={styles.subject} numberOfLines={2}>
                 {email.subject || '(No Subject)'}
             </Text>
@@ -114,5 +129,30 @@ const styles = StyleSheet.create({
     confidence: {
         fontSize: 12,
         color: '#8E8E93',
+    },
+    labelBadge: {
+        alignSelf: 'flex-start',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginBottom: 8,
+        backgroundColor: '#F2F2F7',
+    },
+    labelWork: {
+        backgroundColor: '#E3F2FD', // Light Blue
+    },
+    labelPersonal: {
+        backgroundColor: '#F3E5F5', // Light Purple
+    },
+    labelText: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: '#8E8E93',
+    },
+    labelTextWork: {
+        color: '#1976D2',
+    },
+    labelTextPersonal: {
+        color: '#7B1FA2',
     },
 });

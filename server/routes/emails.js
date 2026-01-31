@@ -118,6 +118,9 @@ router.post('/sync', authMiddleware, syncLimiter, async (req, res) => {
                 intent: e.aiAnalysis.intent,
                 urgency: e.aiAnalysis.urgency,
                 confidence: e.aiAnalysis.confidenceScore,
+                accountLabel: e.gmailAccountId ?
+                    (user.gmailAccounts.find(acc => acc._id.toString() === e.gmailAccountId.toString())?.label || 'Personal')
+                    : 'Personal',
             })),
             failures: failedEmails.length > 0 ? failedEmails : undefined,
         });
@@ -148,14 +151,35 @@ router.get('/', authMiddleware, async (req, res) => {
         }
         if (userAction) query.userAction = userAction;
 
+        // Fetch user to get account labels
+        const user = await User.findById(userId).select('gmailAccounts');
+        const accountMap = {};
+        if (user && user.gmailAccounts) {
+            user.gmailAccounts.forEach(acc => {
+                accountMap[acc._id.toString()] = acc.label;
+            });
+        }
+
         const emails = await Email.find(query)
             .sort({ receivedAt: -1 })
             .limit(parseInt(limit));
 
+        // Inject account label
+        const emailsWithLabels = emails.map(email => {
+            const emailObj = email.toObject();
+            if (email.gmailAccountId) {
+                emailObj.accountLabel = accountMap[email.gmailAccountId.toString()] || 'Personal';
+            } else {
+                // Fallback for legacy emails (assume primary/personal)
+                emailObj.accountLabel = user?.gmailAccounts?.[0]?.label || 'Personal';
+            }
+            return emailObj;
+        });
+
         res.json({
             success: true,
-            count: emails.length,
-            emails,
+            count: emailsWithLabels.length,
+            emails: emailsWithLabels,
         });
     } catch (error) {
         console.error('Error fetching emails:', error);
