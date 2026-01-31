@@ -143,7 +143,9 @@ router.get('/', authMiddleware, async (req, res) => {
 
         // Build query
         const query = { userId };
-        if (urgency) query['aiAnalysis.urgency'] = urgency.toUpperCase();
+        if (urgency) {
+            query['aiAnalysis.urgency'] = { $regex: new RegExp(`^${urgency}$`, 'i') };
+        }
         if (userAction) query.userAction = userAction;
 
         const emails = await Email.find(query)

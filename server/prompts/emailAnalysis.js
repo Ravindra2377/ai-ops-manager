@@ -17,6 +17,8 @@ Classify the intent into ONE of these categories:
 - QUESTION: Needs information, decision, or clarification
 - FYI: Informational only, no action needed (newsletters, updates, confirmations)
 - URGENT: Time-sensitive, contains urgent language or immediate deadline
+- MARKETING: Promotional, sales, discounts, offers
+- NEWSLETTER: Digest, summary, weekly update, automated content
 
 Analyze the email and return ONLY valid JSON (no markdown, no explanation):
 {
@@ -27,27 +29,33 @@ Analyze the email and return ONLY valid JSON (no markdown, no explanation):
 `;
 
 const URGENCY_ASSESSMENT_PROMPT = (emailContent, intent) => `
-Assess the urgency level of this email for a busy executive.
+Assess the priority of this email based on RISK, URGENCY, and DECISION IMPACT.
 
 Email Content: ${emailContent}
 Detected Intent: ${intent}
 
-Consider:
-- Explicit deadline mentions (today, EOD, ASAP, urgent)
-- Sender importance (CEO, client, investor vs newsletter)
-- Language tone and urgency indicators
-- Business impact if delayed
+HARD RULE: If Intent is 'MARKETING' or 'NEWSLETTER', Priority MUST be LOW.
+HARD RULE: Marketing/Newsletters/Automated-FYI are ALWAYS LOW.
 
-Return ONLY valid JSON (no markdown, no explanation):
+Evaluation Criteria (Score 0-10):
+- Has concrete deadline? (+4)
+- Urgency language (ASAP, today, EOD)? (+3)
+- Action/Approval/Difference-making request? (+3)
+- "Blocking" language? (+3)
+- Important Sender (Boss/Client)? (+2)
+- FYI/CC-only? (-2)
+- Marketing? (-5)
+
+Priority Mapping:
+- Score >= 7: HIGH (Risk/Blockage if ignored)
+- Score 3-6: MEDIUM (Needs action, timing flexible)
+- Score <= 2: LOW (No action needed / Safe to ignore)
+
+Return ONLY valid JSON:
 {
-  "urgency": "HIGH",
-  "reasoning": "Contains 'EOD deadline' and is from a client"
+  "urgency": "HIGH", // or "MEDIUM" or "LOW"
+  "reasoning": "Marked HIGH because it requests approval (Action) and has a deadline today (Urgency)."
 }
-
-Urgency levels:
-- HIGH: Immediate action needed (within hours)
-- MEDIUM: Action needed soon (within 1-2 days)
-- LOW: Can be handled later (3+ days or FYI)
 `;
 
 const ACTION_SUGGESTION_PROMPT = (emailContent, intent, urgency) => `
@@ -131,9 +139,9 @@ Keep it concise and actionable. Max 3-5 priorities.
 `;
 
 module.exports = {
-    INTENT_DETECTION_PROMPT,
-    URGENCY_ASSESSMENT_PROMPT,
-    ACTION_SUGGESTION_PROMPT,
-    REPLY_DRAFT_PROMPT,
-    DAILY_BRIEF_PROMPT,
+  INTENT_DETECTION_PROMPT,
+  URGENCY_ASSESSMENT_PROMPT,
+  ACTION_SUGGESTION_PROMPT,
+  REPLY_DRAFT_PROMPT,
+  DAILY_BRIEF_PROMPT,
 };

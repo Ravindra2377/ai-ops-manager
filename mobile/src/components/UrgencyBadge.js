@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 
 export default function UrgencyBadge({ urgency }) {
     const getUrgencyStyle = () => {
-        switch (urgency) {
+        switch (urgency?.toUpperCase()) {
             case 'HIGH':
                 return { backgroundColor: '#FF3B30', color: '#fff' };
             case 'MEDIUM':

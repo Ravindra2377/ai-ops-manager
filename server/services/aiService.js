@@ -53,6 +53,13 @@ async function analyzeEmail(emailData) {
             intentResult.intent
         );
 
+        // SAFETY NET: Force LOW for Marketing/Newsletters
+        if (['MARKETING', 'NEWSLETTER', 'FYI'].includes(intentResult.intent) && urgencyResult.urgency !== 'LOW') {
+            console.log(`🛡️ Safety Net: Downgrading ${intentResult.intent} to LOW`);
+            urgencyResult.urgency = 'LOW';
+            urgencyResult.reasoning = 'Automatically set to LOW based on Intent category.';
+        }
+
         // Step 3: Suggest actions
         const actionsResult = await suggestActions(
             `From: ${from}\nSubject: ${subject}\nBody: ${body}`,
@@ -112,8 +119,11 @@ async function detectIntent(from, subject, body) {
     const response = result.response.text();
 
     // Parse JSON response
-    const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(cleaned);
+    // Robust JSON parsing
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found in response');
+
+    return JSON.parse(jsonMatch[0]);
 }
 
 /**
@@ -124,8 +134,10 @@ async function assessUrgency(emailContent, intent) {
     const result = await model.generateContent(prompt);
     const response = result.response.text();
 
-    const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(cleaned);
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found in response');
+
+    return JSON.parse(jsonMatch[0]);
 }
 
 /**

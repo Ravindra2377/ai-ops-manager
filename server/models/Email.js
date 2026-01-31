@@ -59,7 +59,7 @@ const emailSchema = new mongoose.Schema({
     aiAnalysis: {
         intent: {
             type: String,
-            enum: ['MEETING_REQUEST', 'TASK_REQUEST', 'QUESTION', 'FYI', 'URGENT', 'UNKNOWN'],
+            enum: ['MEETING_REQUEST', 'TASK_REQUEST', 'QUESTION', 'FYI', 'URGENT', 'MARKETING', 'NEWSLETTER', 'UNKNOWN'],
             default: 'UNKNOWN',
         },
         urgency: {

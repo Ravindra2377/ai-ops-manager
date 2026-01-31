@@ -51,9 +51,9 @@ export default function EmailListScreen({ navigation }) {
 
     const calculateStats = (emailList) => {
         const stats = {
-            high: emailList.filter((e) => e.aiAnalysis?.urgency === 'HIGH').length,
-            medium: emailList.filter((e) => e.aiAnalysis?.urgency === 'MEDIUM').length,
-            low: emailList.filter((e) => e.aiAnalysis?.urgency === 'LOW').length,
+            high: emailList.filter((e) => e.aiAnalysis?.urgency?.toUpperCase() === 'HIGH').length,
+            medium: emailList.filter((e) => e.aiAnalysis?.urgency?.toUpperCase() === 'MEDIUM').length,
+            low: emailList.filter((e) => e.aiAnalysis?.urgency?.toUpperCase() === 'LOW').length,
         };
         setStats(stats);
     };
