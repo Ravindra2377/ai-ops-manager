@@ -2,9 +2,10 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
 // Production API URL (Render)
-// export const API_URL = 'https://ai-ops-manager-api.onrender.com/api';
+export const API_URL = 'https://ai-ops-manager-api.onrender.com/api';
 // Local Development URL
-export const API_URL = 'http://192.168.0.2:5000/api';
+// export const API_URL = 'http://192.168.31.1:5000/api';
+// export const API_URL = 'http://192.168.0.2:5000/api';
 const BASE_URL = API_URL.replace('/api', ''); // Base URL without /api
 
 // Create axios instance

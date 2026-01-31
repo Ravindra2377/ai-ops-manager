@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const EmailReminder = require('../models/EmailReminder');
 const Email = require('../models/Email');
+const User = require('../models/User');
 const authMiddleware = require('../middleware/auth');
 
 // Create a reminder
 router.post('/', authMiddleware, async (req, res) => {
     try {
         const { emailId, remindAt, reason } = req.body;
-        const userId = req.user.userId;
+        const userId = req.userId; // Fixed: authMiddleware sets req.userId directly
 
         // Validation
         if (!emailId || !remindAt) {
@@ -49,8 +50,9 @@ router.post('/', authMiddleware, async (req, res) => {
         }
 
         // Check reminder limit (free: 3, premium: unlimited)
-        const user = req.user;
-        if (user.subscriptionTier === 'free') {
+        // Check reminder limit (free: 3, premium: unlimited)
+        const user = await User.findById(userId);
+        if (user && user.subscriptionTier === 'free') {
             const activeReminders = await EmailReminder.countDocuments({
                 userId,
                 status: 'pending',
@@ -96,7 +98,7 @@ router.post('/', authMiddleware, async (req, res) => {
 // Get active reminders
 router.get('/', authMiddleware, async (req, res) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.userId;
         const { status = 'pending' } = req.query;
 
         const reminders = await EmailReminder.find({
@@ -137,7 +139,7 @@ router.get('/', authMiddleware, async (req, res) => {
 // Cancel a reminder
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.userId;
         const reminderId = req.params.id;
 
         const reminder = await EmailReminder.findOne({
