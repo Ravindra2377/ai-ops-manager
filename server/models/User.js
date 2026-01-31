@@ -72,7 +72,7 @@ const userSchema = new mongoose.Schema({
   subscriptionTier: {
     type: String,
     enum: ['free', 'pro', 'power'],
-    default: 'free',
+    default: 'pro',
   },
   isGmailConnected: {
     type: Boolean,

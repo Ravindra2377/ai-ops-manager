@@ -49,8 +49,8 @@ router.post('/', authMiddleware, async (req, res) => {
             });
         }
 
-        // Check reminder limit (free: 3, premium: unlimited)
-        // Check reminder limit (free: 3, premium: unlimited)
+        // Check reminder limit (Disabled: All users are premium now)
+        /*
         const user = await User.findById(userId);
         if (user && user.subscriptionTier === 'free') {
             const activeReminders = await EmailReminder.countDocuments({
@@ -65,6 +65,7 @@ router.post('/', authMiddleware, async (req, res) => {
                 });
             }
         }
+        */
 
         // Create reminder
         const reminder = new EmailReminder({
