@@ -91,9 +91,16 @@ export default function ProfileScreen({ navigation }) {
                 return;
             }
 
+            if (!user) {
+                Alert.alert('Error', 'User data not loaded. Please reload.');
+                return;
+            }
+
             // Get OAuth URL
             // Fix: Fetch the URL first, then open it (don't open API endpoint directly)
-            const apiEndpoint = `${BASE_URL}/api/auth/gmail/authorize?userId=${user.id}&label=${label}&addingAccount=true`;
+            // Use user._id or user.id (Mongoose object usually has _id)
+            const userId = user._id || user.id;
+            const apiEndpoint = `${BASE_URL}/api/auth/gmail/authorize?userId=${userId}&label=${label}&addingAccount=true`;
 
             Alert.alert(
                 'Add Gmail Account',
