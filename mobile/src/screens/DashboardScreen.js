@@ -100,13 +100,19 @@ export default function DashboardScreen({ navigation }) {
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
         >
+            {/* Premium Header */}
             <View style={styles.header}>
-                <Text style={styles.title}>Dashboard</Text>
+                <View>
+                    <Text style={styles.dateText}>{getDateString()}</Text>
+                    <Text style={styles.greetingTitle}>
+                        {getGreeting()} <Text style={{ fontWeight: '300' }}>Panvi</Text>
+                    </Text>
+                </View>
                 <TouchableOpacity
                     style={styles.profileButton}
                     onPress={() => navigation.navigate('Profile')}
                 >
-                    <Text style={styles.profileIcon}>👤</Text>
+                    <Image source={DEFAULT_AVATAR} style={styles.avatarImage} />
                 </TouchableOpacity>
             </View>
 
@@ -188,18 +194,46 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     header: {
-        padding: 24,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 24,
         paddingTop: 60,
+        paddingBottom: 20,
+        backgroundColor: '#fff', // Clean white background for header area
     },
-    title: {
-        fontSize: 32,
+    dateText: {
+        fontSize: 13,
+        color: '#8E8E93',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    greetingTitle: {
+        fontSize: 28,
         fontWeight: 'bold',
         color: '#1a1a1a',
+    },
+    profileButton: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    avatarImage: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        borderWidth: 2,
+        borderColor: '#fff',
     },
     statsContainer: {
         flexDirection: 'row',
         padding: 16,
         gap: 12,
+        marginTop: 8, // Added little spacing
     },
     statCard: {
         flex: 1,
