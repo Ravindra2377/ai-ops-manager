@@ -10,6 +10,7 @@ const taskRoutes = require('./routes/tasks');
 const dashboardRoutes = require('./routes/dashboard');
 const gmailAccountsRoutes = require('./routes/gmailAccounts');
 const reminderRoutes = require('./routes/reminders');
+const briefRoutes = require('./routes/brief'); // Added import for brief routes
 
 const app = express();
 const PORT = process.env.PORT || 5000;

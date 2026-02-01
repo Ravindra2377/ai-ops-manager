@@ -121,6 +121,15 @@ const emailSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    isRead: {
+        type: Boolean,
+        default: false,
+        index: true
+    },
+    lastSurfacedAt: {
+        type: Date,
+        default: null
+    }
 });
 
 // Compound index for efficient queries

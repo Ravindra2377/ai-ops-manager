@@ -100,6 +100,10 @@ export const taskAPI = {
 
     delete: (id) =>
         api.delete(`/tasks/${id}`),
+    getReminders: (status = 'pending') => api.get(`/reminders?status=${status}`),
+    createReminder: (data) => api.post('/reminders', data),
+    cancelReminder: (id) => api.delete(`/reminders/${id}`),
+    getBrief: () => api.get('/api/brief'),
 };
 
 // Dashboard API

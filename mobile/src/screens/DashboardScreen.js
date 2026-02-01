@@ -13,15 +13,19 @@ import { getToken } from '../utils/storage';
 
 const API_URL = 'https://ai-ops-manager-api.onrender.com';
 
+import BriefCard from '../components/BriefCard'; // New Import
+
 export default function DashboardScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [stats, setStats] = useState(null);
     const [reminders, setReminders] = useState([]);
+    const [brief, setBrief] = useState(null); // New State
 
     useEffect(() => {
         loadDashboard();
         loadReminders();
+        loadBrief(); // Load Brief
     }, []);
 
     const loadDashboard = async () => {
@@ -30,7 +34,6 @@ export default function DashboardScreen({ navigation }) {
             setStats(statsRes.data.stats);
         } catch (error) {
             console.error('Error loading dashboard:', error);
-            // Set default stats on error
             setStats({
                 emails: { total: 0, pending: 0, highUrgency: 0 },
                 tasks: { total: 0, pending: 0, completed: 0 }
@@ -41,10 +44,20 @@ export default function DashboardScreen({ navigation }) {
         }
     };
 
+    const loadBrief = async () => {
+        try {
+            const res = await dashboardAPI.getBrief(); // Fetch Brief
+            setBrief(res.data);
+        } catch (error) {
+            console.error('Error loading brief:', error);
+        }
+    };
+
     const onRefresh = () => {
         setRefreshing(true);
         loadDashboard();
         loadReminders();
+        loadBrief();
     };
 
     const loadReminders = async () => {
@@ -95,6 +108,11 @@ export default function DashboardScreen({ navigation }) {
                 >
                     <Text style={styles.profileIcon}>👤</Text>
                 </TouchableOpacity>
+            </View>
+
+            {/* Daily Brief Card (Command Center) */}
+            <View style={styles.section}>
+                <BriefCard brief={brief} loading={loading && !brief} />
             </View>
 
             <View style={styles.statsContainer}>
