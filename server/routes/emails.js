@@ -254,6 +254,32 @@ router.post('/:id/action', authMiddleware, async (req, res) => {
         email.userAction = action;
         await email.save();
 
+        // DECISION FOLLOW-THROUGH: Create decision for meaningful approved actions
+        if (action === 'approved' && email.aiAnalysis.suggestedActions && email.aiAnalysis.suggestedActions.length > 0) {
+            const Decision = require('../models/Decision');
+            const primaryAction = email.aiAnalysis.suggestedActions[0];
+
+            // Only create decision for actions that imply future work
+            if (['REPLY', 'CREATE_TASK', 'SCHEDULE_MEETING', 'FOLLOW_UP'].includes(primaryAction.type)) {
+                const decisionType = primaryAction.type === 'CREATE_TASK' ? 'TASK' :
+                    primaryAction.type === 'FOLLOW_UP' ? 'REMINDER' : 'REPLY';
+
+                const decision = new Decision({
+                    userId: req.userId,
+                    emailId: email._id,
+                    decisionType,
+                    decisionText: primaryAction.description || email.subject,
+                    source: 'EMAIL',
+                    createdAt: new Date(),
+                    followUpAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // +24h
+                    status: 'PENDING',
+                });
+
+                await decision.save();
+                console.log(`📋 Created decision: ${decision.decisionText}`);
+            }
+        }
+
         // AUDIT LOG: Track user actions for ML training
         const actionLog = new UserActionLog({
             userId: req.userId,
