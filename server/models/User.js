@@ -86,43 +86,42 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
-},
   // Brief Caching to reduce AI load
   dailyBrief: {
-  type: Object, // Stores the full JSON brief
-  default: null,
-},
+    type: Object, // Stores the full JSON brief
+    default: null,
+  },
   dailyBriefGeneratedAt: {
-  type: Date,
-  default: null,
-},
+    type: Date,
+    default: null,
+  },
   // Push Notifications
   pushToken: {
-  type: String,
-  default: null,
-},
+    type: String,
+    default: null,
+  },
   notificationSettings: {
-  reminders: {
-    type: Boolean,
-    default: true, // ON by default
+    reminders: {
+      type: Boolean,
+      default: true, // ON by default
+    },
+    decisionFollowUps: {
+      type: Boolean,
+      default: true, // ON by default
+    },
+    urgentEmails: {
+      type: Boolean,
+      default: false, // OFF by default - gated feature
+    },
   },
-  decisionFollowUps: {
-    type: Boolean,
-    default: true, // ON by default
-  },
-  urgentEmails: {
-    type: Boolean,
-    default: false, // OFF by default - gated feature
-  },
-},
   lastNotificationSentAt: {
-  type: Date,
-  default: null,
-},
+    type: Date,
+    default: null,
+  },
   notificationsSentToday: {
-  type: Number,
-  default: 0,
-},
+    type: Number,
+    default: 0,
+  },
 });
 
 // Hash password before saving
