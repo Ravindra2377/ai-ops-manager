@@ -86,6 +86,15 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  // Brief Caching to reduce AI load
+  dailyBrief: {
+    type: Object, // Stores the full JSON brief
+    default: null,
+  },
+  dailyBriefGeneratedAt: {
+    type: Date,
+    default: null,
+  },
 });
 
 // Hash password before saving

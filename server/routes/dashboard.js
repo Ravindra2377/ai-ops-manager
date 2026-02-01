@@ -33,6 +33,25 @@ router.get('/brief', authMiddleware, async (req, res) => {
             .sort({ priority: -1, dueDate: 1 })
             .limit(10);
 
+        // CACHING STRATEGY:
+        // Only regenerate brief if it's older than 15 minutes OR if forceRefresh=true
+        const user = await User.findById(userId);
+        const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+        const isCacheValid = user.dailyBrief &&
+            user.dailyBriefGeneratedAt &&
+            (Date.now() - new Date(user.dailyBriefGeneratedAt).getTime() < CACHE_DURATION);
+
+        if (isCacheValid && req.query.forceRefresh !== 'true') {
+            return res.json({
+                success: true,
+                timeOfDay,
+                brief: user.dailyBrief,
+                emailCount: recentEmails.length,
+                taskCount: pendingTasks.length,
+                cached: true,
+            });
+        }
+
         // Format data for AI
         const emailsForAI = recentEmails.map(e => ({
             from: e.from.email,
@@ -50,12 +69,20 @@ router.get('/brief', authMiddleware, async (req, res) => {
         // Generate brief with AI
         const brief = await generateDailyBrief(emailsForAI, tasksForAI, timeOfDay);
 
+        // Save to cache
+        if (brief && brief.summary && !brief.summary.includes('Unable to generate')) {
+            user.dailyBrief = brief;
+            user.dailyBriefGeneratedAt = new Date();
+            await user.save();
+        }
+
         res.json({
             success: true,
             timeOfDay,
             brief,
             emailCount: recentEmails.length,
             taskCount: pendingTasks.length,
+            cached: false,
         });
     } catch (error) {
         console.error('Error generating daily brief:', error);
