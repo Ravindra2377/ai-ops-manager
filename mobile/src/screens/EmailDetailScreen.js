@@ -7,9 +7,11 @@ import {
     StyleSheet,
     ActivityIndicator,
     Alert,
+    Platform,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Modal } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { emailAPI, taskAPI } from '../services/api';
 import UrgencyBadge from '../components/UrgencyBadge';
 import IntentBadge from '../components/IntentBadge';
@@ -26,6 +28,9 @@ export default function EmailDetailScreen({ route, navigation }) {
     const [showReminderModal, setShowReminderModal] = useState(false);
     const [reminder, setReminder] = useState(null);
     const [reminderLoading, setReminderLoading] = useState(false);
+    const [showCustomPicker, setShowCustomPicker] = useState(false);
+    const [customDate, setCustomDate] = useState(new Date());
+    const [customTime, setCustomTime] = useState(new Date());
 
     useEffect(() => {
         loadEmail();
@@ -155,11 +160,58 @@ export default function EmailDetailScreen({ route, navigation }) {
             } else if (data.needsUpgrade) {
                 Alert.alert('Upgrade Required', data.message);
             } else {
+                console.error('Reminder creation failed:', data);
                 Alert.alert('Error', data.message || 'Failed to set reminder');
             }
         } catch (error) {
             console.error('Error setting reminder:', error);
-            Alert.alert('Error', 'Failed to set reminder');
+            console.error('Error details:', error.message);
+            Alert.alert('Error', `Failed to create reminder: ${error.message}`);
+        } finally {
+            setReminderLoading(false);
+        }
+    };
+
+    const handleCustomReminder = () => {
+        setShowReminderModal(false);
+        setShowCustomPicker(true);
+    };
+
+    const handleConfirmCustomReminder = async () => {
+        setShowCustomPicker(false);
+        setReminderLoading(true);
+
+        try {
+            // Combine custom date and time
+            const reminderDateTime = new Date(customDate);
+            reminderDateTime.setHours(customTime.getHours());
+            reminderDateTime.setMinutes(customTime.getMinutes());
+
+            const token = await getToken();
+            const response = await fetch(`${API_URL}/api/reminders`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    emailId,
+                    remindAt: reminderDateTime.toISOString(),
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setReminder(data.reminder);
+                Alert.alert('Success', `I'll remind you ${formatReminderTime(reminderDateTime)}`);
+            } else {
+                console.error('Custom reminder failed:', data);
+                Alert.alert('Error', data.message || 'Failed to set reminder');
+            }
+        } catch (error) {
+            console.error('Error setting custom reminder:', error);
+            Alert.alert('Error', `Failed to create reminder: ${error.message}`);
         } finally {
             setReminderLoading(false);
         }
@@ -430,8 +482,64 @@ export default function EmailDetailScreen({ route, navigation }) {
                         </TouchableOpacity>
 
                         <TouchableOpacity
+                            style={styles.timeOption}
+                            onPress={handleCustomReminder}
+                        >
+                            <Text style={styles.timeOptionText}>📅 Custom Date & Time</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
                             style={[styles.timeOption, styles.cancelOption]}
                             onPress={() => setShowReminderModal(false)}
+                        >
+                            <Text style={styles.cancelOptionText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Custom Date/Time Picker Modal */}
+            <Modal
+                visible={showCustomPicker}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setShowCustomPicker(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>📅 Set Custom Reminder</Text>
+
+                        <Text style={styles.pickerLabel}>Select Date:</Text>
+                        <DateTimePicker
+                            value={customDate}
+                            mode="date"
+                            display="default"
+                            onChange={(event, selectedDate) => {
+                                if (selectedDate) setCustomDate(selectedDate);
+                            }}
+                            minimumDate={new Date()}
+                        />
+
+                        <Text style={styles.pickerLabel}>Select Time:</Text>
+                        <DateTimePicker
+                            value={customTime}
+                            mode="time"
+                            display="default"
+                            onChange={(event, selectedTime) => {
+                                if (selectedTime) setCustomTime(selectedTime);
+                            }}
+                        />
+
+                        <TouchableOpacity
+                            style={[styles.timeOption, styles.confirmButton]}
+                            onPress={handleConfirmCustomReminder}
+                        >
+                            <Text style={styles.timeOptionText}>Confirm Reminder</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.timeOption, styles.cancelOption]}
+                            onPress={() => setShowCustomPicker(false)}
                         >
                             <Text style={styles.cancelOptionText}>Cancel</Text>
                         </TouchableOpacity>
@@ -727,7 +835,17 @@ const styles = StyleSheet.create({
     },
     cancelOptionText: {
         fontSize: 16,
-        fontWeight: '500',
-        color: '#8E8E93',
+        color: '#FF3B30',
+        fontWeight: '600',
+    },
+    pickerLabel: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#000',
+        marginTop: 16,
+        marginBottom: 8,
+    },
+    confirmButton: {
+        backgroundColor: '#34C759',
     },
 });
