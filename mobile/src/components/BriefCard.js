@@ -42,7 +42,7 @@ export default function BriefCard({ brief, loading, onRefresh }) {
         );
     }
 
-    if (!brief) return null;
+    if (!brief || !brief.state || !brief.headline) return null;
 
     const { state, headline, items, subtext } = brief;
     const theme = COLORS[state] || COLORS.CLEAR;
