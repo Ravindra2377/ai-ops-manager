@@ -89,9 +89,16 @@ router.post('/', authMiddleware, async (req, res) => {
         });
     } catch (error) {
         console.error('Create reminder error:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            emailId: req.body.emailId,
+            userId: req.userId,
+        });
         res.status(500).json({
             success: false,
-            message: 'Failed to create reminder',
+            message: `Failed to create reminder: ${error.message}`,
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
         });
     }
 });
