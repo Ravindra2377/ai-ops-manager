@@ -99,39 +99,49 @@ router.post('/sync', authMiddleware, syncLimiter, async (req, res) => {
                     error: error.message,
                 });
             }
+            await email.save();
+            failedEmails.push({
+                subject: emailData.subject,
+                error: error.message,
+            });
         }
+
+        // Rate Limit Safety: Wait 2s between emails (each email = 4-5 AI calls)
+        // This prevents hitting the 15 RPM limit of free tier
+        await new Promise(resolve => setTimeout(resolve, 2000));
+    }
 
         // Update last sync time
         user.lastSyncAt = new Date();
-        await user.save();
+    await user.save();
 
-        res.json({
-            success: true,
-            message: `Successfully processed ${processedEmails.length} emails`,
-            emailsProcessed: processedEmails.length,
-            emailsSkipped: skippedEmails.length,
-            emailsFailed: failedEmails.length,
-            emails: processedEmails.map(e => ({
-                id: e._id,
-                subject: e.subject,
-                from: e.from,
-                intent: e.aiAnalysis.intent,
-                urgency: e.aiAnalysis.urgency,
-                confidence: e.aiAnalysis.confidenceScore,
-                accountLabel: e.gmailAccountId ?
-                    (user.gmailAccounts.find(acc => acc._id.toString() === e.gmailAccountId.toString())?.label || 'Personal')
-                    : 'Personal',
-            })),
-            failures: failedEmails.length > 0 ? failedEmails : undefined,
-        });
-    } catch (error) {
-        console.error('Email sync error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error syncing emails',
-            error: error.message,
-        });
-    }
+    res.json({
+        success: true,
+        message: `Successfully processed ${processedEmails.length} emails`,
+        emailsProcessed: processedEmails.length,
+        emailsSkipped: skippedEmails.length,
+        emailsFailed: failedEmails.length,
+        emails: processedEmails.map(e => ({
+            id: e._id,
+            subject: e.subject,
+            from: e.from,
+            intent: e.aiAnalysis.intent,
+            urgency: e.aiAnalysis.urgency,
+            confidence: e.aiAnalysis.confidenceScore,
+            accountLabel: e.gmailAccountId ?
+                (user.gmailAccounts.find(acc => acc._id.toString() === e.gmailAccountId.toString())?.label || 'Personal')
+                : 'Personal',
+        })),
+        failures: failedEmails.length > 0 ? failedEmails : undefined,
+    });
+} catch (error) {
+    console.error('Email sync error:', error);
+    res.status(500).json({
+        success: false,
+        message: 'Error syncing emails',
+        error: error.message,
+    });
+}
 });
 
 /**
