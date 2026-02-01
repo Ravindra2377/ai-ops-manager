@@ -13,7 +13,8 @@ import { getToken } from '../utils/storage';
 
 const API_URL = 'https://ai-ops-manager-api.onrender.com';
 
-import BriefCard from '../components/BriefCard'; // New Import
+import BriefCard from '../components/BriefCard';
+import DecisionCard from '../components/DecisionCard';
 import { Image } from 'react-native';
 
 const DEFAULT_AVATAR = require('../../assets/default_avatar.png');
@@ -35,12 +36,14 @@ export default function DashboardScreen({ navigation }) {
     const [refreshing, setRefreshing] = useState(false);
     const [stats, setStats] = useState(null);
     const [reminders, setReminders] = useState([]);
-    const [brief, setBrief] = useState(null); // New State
+    const [brief, setBrief] = useState(null);
+    const [decisions, setDecisions] = useState([]);
 
     useEffect(() => {
         loadDashboard();
         loadReminders();
-        loadBrief(); // Load Brief
+        loadBrief();
+        loadDecisions();
     }, []);
 
     const loadDashboard = async () => {
@@ -68,11 +71,45 @@ export default function DashboardScreen({ navigation }) {
         }
     };
 
+    const loadDecisions = async () => {
+        try {
+            const token = await getToken();
+            const res = await fetch(`${API_URL}/api/decisions/pending`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            if (data.success) {
+                setDecisions(data.decisions);
+            }
+        } catch (error) {
+            console.error('Error loading decisions:', error);
+        }
+    };
+
+    const handleResolveDecision = async (decisionId, resolution) => {
+        try {
+            const token = await getToken();
+            await fetch(`${API_URL}/api/decisions/${decisionId}/resolve`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ resolution }),
+            });
+            // Reload decisions after resolution
+            loadDecisions();
+        } catch (error) {
+            console.error('Error resolving decision:', error);
+        }
+    };
+
     const onRefresh = () => {
         setRefreshing(true);
         loadDashboard();
         loadReminders();
         loadBrief();
+        loadDecisions();
     };
 
     const loadReminders = async () => {
@@ -135,6 +172,19 @@ export default function DashboardScreen({ navigation }) {
             <View style={styles.section}>
                 <BriefCard brief={brief} loading={loading && !brief} />
             </View>
+
+            {/* Decision Follow-Through Cards */}
+            {decisions.length > 0 && (
+                <View style={styles.section}>
+                    {decisions.map((decision) => (
+                        <DecisionCard
+                            key={decision._id}
+                            decision={decision}
+                            onResolve={handleResolveDecision}
+                        />
+                    ))}
+                </View>
+            )}
 
             <View style={styles.statsContainer}>
                 <View style={styles.statCard}>
