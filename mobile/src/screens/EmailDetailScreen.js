@@ -28,9 +28,10 @@ export default function EmailDetailScreen({ route, navigation }) {
     const [showReminderModal, setShowReminderModal] = useState(false);
     const [reminder, setReminder] = useState(null);
     const [reminderLoading, setReminderLoading] = useState(false);
-    const [showCustomPicker, setShowCustomPicker] = useState(false);
-    const [customDate, setCustomDate] = useState(new Date());
-    const [customTime, setCustomTime] = useState(new Date());
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [selectedTime, setSelectedTime] = useState(new Date());
 
     useEffect(() => {
         loadEmail();
@@ -174,18 +175,38 @@ export default function EmailDetailScreen({ route, navigation }) {
 
     const handleCustomReminder = () => {
         setShowReminderModal(false);
-        setShowCustomPicker(true);
+        setSelectedDate(new Date());
+        setSelectedTime(new Date());
+        setShowDatePicker(true);
     };
 
-    const handleConfirmCustomReminder = async () => {
-        setShowCustomPicker(false);
+    const onDateChange = (event, date) => {
+        setShowDatePicker(false);
+        if (date) {
+            setSelectedDate(date);
+            // Show time picker after date is selected
+            setTimeout(() => setShowTimePicker(true), 300);
+        }
+    };
+
+    const onTimeChange = (event, time) => {
+        setShowTimePicker(false);
+        if (time) {
+            setSelectedTime(time);
+            // Confirm reminder after time is selected
+            setTimeout(() => handleConfirmCustomReminder(time), 300);
+        }
+    };
+
+    const handleConfirmCustomReminder = async (time) => {
         setReminderLoading(true);
 
         try {
-            // Combine custom date and time
-            const reminderDateTime = new Date(customDate);
-            reminderDateTime.setHours(customTime.getHours());
-            reminderDateTime.setMinutes(customTime.getMinutes());
+            // Combine selected date and time
+            const reminderDateTime = new Date(selectedDate);
+            const timeToUse = time || selectedTime;
+            reminderDateTime.setHours(timeToUse.getHours());
+            reminderDateTime.setMinutes(timeToUse.getMinutes());
 
             const token = await getToken();
             const response = await fetch(`${API_URL}/api/reminders`, {
@@ -498,54 +519,26 @@ export default function EmailDetailScreen({ route, navigation }) {
                 </View>
             </Modal>
 
-            {/* Custom Date/Time Picker Modal */}
-            <Modal
-                visible={showCustomPicker}
-                transparent={true}
-                animationType="slide"
-                onRequestClose={() => setShowCustomPicker(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>📅 Set Custom Reminder</Text>
+            {/* Date Picker (Android auto-dismisses, iOS shows modal) */}
+            {showDatePicker && (
+                <DateTimePicker
+                    value={selectedDate}
+                    mode="date"
+                    display="default"
+                    onChange={onDateChange}
+                    minimumDate={new Date()}
+                />
+            )}
 
-                        <Text style={styles.pickerLabel}>Select Date:</Text>
-                        <DateTimePicker
-                            value={customDate}
-                            mode="date"
-                            display="default"
-                            onChange={(event, selectedDate) => {
-                                if (selectedDate) setCustomDate(selectedDate);
-                            }}
-                            minimumDate={new Date()}
-                        />
-
-                        <Text style={styles.pickerLabel}>Select Time:</Text>
-                        <DateTimePicker
-                            value={customTime}
-                            mode="time"
-                            display="default"
-                            onChange={(event, selectedTime) => {
-                                if (selectedTime) setCustomTime(selectedTime);
-                            }}
-                        />
-
-                        <TouchableOpacity
-                            style={[styles.timeOption, styles.confirmButton]}
-                            onPress={handleConfirmCustomReminder}
-                        >
-                            <Text style={styles.timeOptionText}>Confirm Reminder</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.timeOption, styles.cancelOption]}
-                            onPress={() => setShowCustomPicker(false)}
-                        >
-                            <Text style={styles.cancelOptionText}>Cancel</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
+            {/* Time Picker (Android auto-dismisses, iOS shows modal) */}
+            {showTimePicker && (
+                <DateTimePicker
+                    value={selectedTime}
+                    mode="time"
+                    display="default"
+                    onChange={onTimeChange}
+                />
+            )}
         </View>
     );
 }
