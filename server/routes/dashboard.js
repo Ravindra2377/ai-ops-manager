@@ -3,6 +3,7 @@ const authMiddleware = require('../middleware/auth');
 const { generateDailyBrief } = require('../services/aiService');
 const Email = require('../models/Email');
 const Task = require('../models/Task');
+const User = require('../models/User');
 
 const router = express.Router();
 
