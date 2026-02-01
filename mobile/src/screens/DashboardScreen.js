@@ -14,6 +14,21 @@ import { getToken } from '../utils/storage';
 const API_URL = 'https://ai-ops-manager-api.onrender.com';
 
 import BriefCard from '../components/BriefCard'; // New Import
+import { Image } from 'react-native';
+
+const DEFAULT_AVATAR = require('../../assets/default_avatar.png');
+
+const getGreeting = () => {
+    const hours = new Date().getHours();
+    if (hours < 12) return 'Good Morning,';
+    if (hours < 18) return 'Good Afternoon,';
+    return 'Good Evening,';
+};
+
+const getDateString = () => {
+    const options = { weekday: 'long', month: 'short', day: 'numeric' };
+    return new Date().toLocaleDateString('en-US', options);
+};
 
 export default function DashboardScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
