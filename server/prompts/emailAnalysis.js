@@ -15,10 +15,12 @@ Classify the intent into ONE of these categories:
 - MEETING_REQUEST: Someone wants to schedule time, mentions meeting/call/discussion
 - TASK_REQUEST: Action item or deliverable requested from the recipient
 - QUESTION: Needs information, decision, or clarification
-- FYI: Informational only, no action needed (newsletters, updates, confirmations)
-- URGENT: Time-sensitive, contains urgent language or immediate deadline
-- MARKETING: Promotional, sales, discounts, offers
+- FYI: Informational only, no action needed (updates, confirmations)
+- URGENT: Time-sensitive (BUT NOT MARKETING). Immediate deadline for *work* or *personal* matters.
+- MARKETING: Promotional, sales, discounts, offers, "X% OFF", "Limited Time", "Buy Now"
 - NEWSLETTER: Digest, summary, weekly update, automated content
+
+Note: If an email contains "50% off" or "Sale", it is MARKETING, NOT URGENT.
 
 Analyze the email and return ONLY valid JSON (no markdown, no explanation):
 {
@@ -34,17 +36,18 @@ Assess the priority of this email based on RISK, URGENCY, and DECISION IMPACT.
 Email Content: ${emailContent}
 Detected Intent: ${intent}
 
-HARD RULE: If Intent is 'MARKETING' or 'NEWSLETTER', Priority MUST be LOW.
-HARD RULE: Marketing/Newsletters/Automated-FYI are ALWAYS LOW.
+HARD RULE: If Intent is 'MARKETING', 'NEWSLETTER' or 'FYI', Priority MUST be LOW.
+HARD RULE: Any "Sale", "Discount", or "Offer" is ALWAYS LOW, regardless of urgency language.
 
 Evaluation Criteria (Score 0-10):
-- Has concrete deadline? (+4)
-- Urgency language (ASAP, today, EOD)? (+3)
+- Has concrete deadline for WORK/PPR? (+4)
+- True Urgency (ASAP, today) for NON-SALES? (+3)
 - Action/Approval/Difference-making request? (+3)
 - "Blocking" language? (+3)
 - Important Sender (Boss/Client)? (+2)
 - FYI/CC-only? (-2)
-- Marketing? (-5)
+- Marketing/Sales language ("Buy", "Off", "Join")? (-8)
+- Newsletter/Digest? (-5)
 
 Priority Mapping:
 - Score >= 7: HIGH (Risk/Blockage if ignored)
