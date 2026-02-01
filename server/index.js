@@ -12,6 +12,7 @@ const gmailAccountsRoutes = require('./routes/gmailAccounts');
 const reminderRoutes = require('./routes/reminders');
 const briefRoutes = require('./routes/brief');
 const decisionRoutes = require('./routes/decisions');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -32,6 +33,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/gmail', gmailAccountsRoutes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/decisions', decisionRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -61,8 +63,13 @@ app.use((err, req, res, next) => {
 
 // Start cron jobs
 const { reminderCronJob } = require('./cron/reminderCron');
+const { decisionCronJob } = require('./cron/decisionCron');
+
 reminderCronJob.start();
 console.log('✅ Reminder cron job started (runs every 5 minutes)');
+
+decisionCronJob.start();
+console.log('✅ Decision cron job started (runs every hour)');
 
 // Start server
 app.listen(PORT, () => {
