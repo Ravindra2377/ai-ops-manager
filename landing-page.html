@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Ops Manager - Your email tells you what to do. We make sure you do it.</title>
+    <meta name="description"
+        content="AI that doesn't just analyze your inbox — it checks back tomorrow to see if you actually followed through.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="AI Ops Manager - Email accountability, not just organization">
+    <meta property="og:description" content="The only email AI that remembers what you promised yourself">
+    <meta property="og:type" content="website">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #1d1d1f;
+            background: #ffffff;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            padding: 20px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #007AFF;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #1d1d1f;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #007AFF;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #0051D5;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #007AFF;
+            padding: 12px 24px;
+            border: 2px solid #007AFF;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #007AFF;
+            color: white;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 0;
+        }
+
+        .hero h1 {
+            font-size: 56px;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            color: #1d1d1f;
+        }
+
+        .hero p {
+            font-size: 24px;
+            color: #6e6e73;
+            margin-bottom: 40px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-cta {
+            margin-bottom: 60px;
+        }
+
+        .hero-visual {
+            max-width: 800px;
+            margin: 0 auto;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            background: #f5f5f7;
+            padding: 40px;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6e6e73;
+        }
+
+        /* Problem Section */
+        .problem {
+            background: #f5f5f7;
+            padding: 80px 0;
+        }
+
+        .problem h2 {
+            font-size: 48px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .problem-content {
+            max-width: 600px;
+            margin: 0 auto;
+            font-size: 20px;
+            line-height: 1.8;
+        }
+
+        .problem-content ul {
+            list-style: none;
+            margin: 30px 0;
+        }
+
+        .problem-content li {
+            padding: 10px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .problem-content li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #007AFF;
+            font-size: 24px;
+        }
+
+        .highlight {
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 80px 0;
+        }
+
+        .features h2 {
+            font-size: 48px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+
+        .feature-card {
+            padding: 40px;
+            border-radius: 16px;
+            background: #f5f5f7;
+        }
+
+        .feature-card h3 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .feature-card h4 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #6e6e73;
+        }
+
+        .feature-card p {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #6e6e73;
+            margin-bottom: 16px;
+        }
+
+        .feature-card ul {
+            list-style: none;
+        }
+
+        .feature-card li {
+            padding: 8px 0;
+            font-size: 18px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .badge-critical {
+            background: #FF3B30;
+            color: white;
+        }
+
+        .badge-warning {
+            background: #FF9500;
+            color: white;
+        }
+
+        .badge-clear {
+            background: #34C759;
+            color: white;
+        }
+
+        /* Pricing Section */
+        .pricing {
+            background: #f5f5f7;
+            padding: 80px 0;
+        }
+
+        .pricing h2 {
+            font-size: 48px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .pricing-card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .pricing-card h3 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .pricing-card .price {
+            font-size: 48px;
+            font-weight: 700;
+            color: #007AFF;
+            margin-bottom: 24px;
+        }
+
+        .pricing-card ul {
+            list-style: none;
+            margin-bottom: 32px;
+        }
+
+        .pricing-card li {
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        /* FAQ Section */
+        .faq {
+            padding: 80px 0;
+        }
+
+        .faq h2 {
+            font-size: 48px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .faq-grid {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            margin-bottom: 40px;
+        }
+
+        .faq-item h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .faq-item p {
+            font-size: 18px;
+            color: #6e6e73;
+            line-height: 1.6;
+        }
+
+        /* CTA Section */
+        .cta {
+            background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
+            color: white;
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .cta h2 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .cta p {
+            font-size: 24px;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .cta .btn-primary {
+            background: white;
+            color: #007AFF;
+            font-size: 18px;
+            padding: 16px 40px;
+        }
+
+        .cta .btn-primary:hover {
+            background: #f5f5f7;
+        }
+
+        .cta-subtext {
+            margin-top: 24px;
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        .cta-subtext span {
+            display: block;
+            margin: 8px 0;
+        }
+
+        /* Footer */
+        footer {
+            background: #1d1d1f;
+            color: white;
+            padding: 40px 0;
+            text-align: center;
+        }
+
+        footer a {
+            color: white;
+            text-decoration: none;
+            margin: 0 20px;
+        }
+
+        footer a:hover {
+            opacity: 0.8;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 36px;
+            }
+
+            .hero p {
+                font-size: 18px;
+            }
+
+            .problem h2,
+            .features h2,
+            .pricing h2,
+            .faq h2,
+            .cta h2 {
+                font-size: 32px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .feature-grid,
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo">AI Ops Manager</div>
+                <div class="nav-links">
+                    <a href="#features">How It Works</a>
+                    <a href="#pricing">Pricing</a>
+                    <a href="#" class="btn-primary">Start Free Trial</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>Your email tells you what to do.<br>We make sure you do it.</h1>
+            <p>AI that doesn't just analyze your inbox — it checks back tomorrow to see if you actually followed
+                through.</p>
+            <div class="hero-cta">
+                <a href="https://ai-ops-manager-api.onrender.com/api/auth/google" class="btn-primary">Connect Gmail
+                    (Free for 7 Days)</a>
+                <p style="margin-top: 16px; font-size: 14px; color: #6e6e73;">No credit card · Read-only access</p>
+            </div>
+            <div class="hero-visual">
+                [Screenshot: Daily Brief + Decision Card]
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section class="problem">
+        <div class="container">
+            <h2>You're not ignoring emails.<br>You're ignoring decisions.</h2>
+            <div class="problem-content">
+                <p>Every day, you approve AI suggestions:</p>
+                <ul>
+                    <li>"Reply to this client"</li>
+                    <li>"Schedule that meeting"</li>
+                    <li>"Follow up on the proposal"</li>
+                </ul>
+                <p>Then life happens. The tab closes. You forget.</p>
+                <p class="highlight">Your inbox doesn't care if you actually did it.</p>
+                <p class="highlight">We do.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2>The only email AI that remembers<br>what you promised yourself</h2>
+
+            <div class="feature-grid">
+                <!-- Feature 1 -->
+                <div class="feature-card">
+                    <h3>Daily Brief</h3>
+                    <h4>See what matters in 3 seconds</h4>
+                    <p>Not "unread emails." Not "important senders."</p>
+                    <p><strong>What you NEED to do vs what you HAVE.</strong></p>
+                    <ul>
+                        <li><span class="badge badge-critical">CRITICAL</span> Blocking your day</li>
+                        <li><span class="badge badge-warning">WARNING</span> Needs attention soon</li>
+                        <li><span class="badge badge-clear">CLEAR</span> You're good</li>
+                    </ul>
+                    <p style="margin-top: 16px;"><em>One glance. Total clarity.</em></p>
+                    <p style="margin-top: 8px; color: #6e6e73;"><strong>So you can start your day, not your
+                            inbox.</strong></p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="feature-card">
+                    <h3>Decision Follow-Through</h3>
+                    <h4>We check back tomorrow. Gently.</h4>
+                    <p>You approved an AI suggestion yesterday?</p>
+                    <p>We'll ask: <em>"Did you actually do it?"</em></p>
+                    <p style="margin-top: 12px; font-style: italic; color: #6e6e73;">Example: "Reply to client about Q1
+                        budget"</p>
+                    <p style="margin-top: 12px;">Not judgmental. Not nagging.</p>
+                    <p><strong>Just closing the loop.</strong></p>
+                    <p style="margin-top: 16px;"><em>Because insights without outcomes are just noise.</em></p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="feature-card">
+                    <h3>Calm Notifications</h3>
+                    <h4>Reminders that respect your attention</h4>
+                    <ul>
+                        <li>✓ No sound spam</li>
+                        <li>✓ Max 4 per day</li>
+                        <li>✓ Only what you asked for</li>
+                    </ul>
+                    <p style="margin-top: 16px;"><em>Your phone doesn't need to scream at you.</em></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <h2>Simple, Honest Pricing</h2>
+            <div class="pricing-grid">
+                <!-- Free Tier -->
+                <div class="pricing-card">
+                    <h3>Free Plan</h3>
+                    <div class="price">$0</div>
+                    <ul>
+                        <li>Daily Brief</li>
+                        <li>Email priority</li>
+                        <li>Manual reminders</li>
+                        <li>1 Gmail account</li>
+                    </ul>
+                    <a href="https://ai-ops-manager-api.onrender.com/api/auth/google" class="btn-secondary">Get
+                        Started</a>
+                </div>
+
+                <!-- Pro Tier -->
+                <div class="pricing-card">
+                    <h3>Pro</h3>
+                    <div class="price">$9<span style="font-size: 24px; color: #6e6e73;">/mo</span></div>
+                    <ul>
+                        <li>Everything in Free</li>
+                        <li><strong>Decision follow-through</strong></li>
+                        <li><strong>Push notifications</strong></li>
+                        <li>Priority support</li>
+                    </ul>
+                    <a href="https://ai-ops-manager-api.onrender.com/api/auth/google" class="btn-primary">Start 7-Day
+                        Trial</a>
+                </div>
+            </div>
+            <p style="text-align: center; margin-top: 40px; color: #6e6e73;">No credit card required · Start with Free
+                Plan</p>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq">
+        <div class="container">
+            <h2>Frequently Asked Questions</h2>
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h3>How is this different from Superhuman?</h3>
+                    <p>Superhuman makes email faster. We make sure you actually do what you said you'd do. Different
+                        problems.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3>Does AI send emails for me?</h3>
+                    <p>No. We suggest, you approve, we follow up. You're always in control.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3>What if I don't want notifications?</h3>
+                    <p>Turn them off. The Daily Brief works perfectly without them.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3>Can I use this with Outlook/Yahoo?</h3>
+                    <p>Gmail only for now. We're focused on doing one thing really well first.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3>Is my data safe?</h3>
+                    <p>Yes. OAuth 2.0, encrypted storage, you can delete everything anytime.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="cta">
+        <div class="container">
+            <h2>Stop organizing. Start completing.</h2>
+            <p>Join the beta. Get 7 days of Pro free.</p>
+            <a href="https://ai-ops-manager-api.onrender.com/api/auth/google" class="btn-primary">Connect Gmail (Free
+                for 7 Days)</a>
+            <div class="cta-subtext">
+                <span>✓ No credit card required</span>
+                <span>✓ Read-only access</span>
+                <span>✓ Cancel anytime</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms of Service</a>
+            <a href="#">Contact</a>
+        </div>
+        <p style="margin-top: 20px; opacity: 0.6;">© 2026 AI Ops Manager. All rights reserved.</p>
+    </footer>
+</body>
+
+</html>
