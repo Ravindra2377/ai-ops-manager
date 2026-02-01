@@ -15,7 +15,7 @@ const emailReminderSchema = new mongoose.Schema({
     },
     gmailAccountId: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true,
+        required: false, // Optional for backward compatibility with emails that don't have gmailAccountId
     },
     remindAt: {
         type: Date,
