@@ -59,141 +59,117 @@ async function analyzeEmail(emailData) {
     }
 
     try {
-        const { from, subject, body } = emailData;
+        try {
+            const { from, subject, body } = emailData;
 
-        // Step 1: Detect intent
-        const intentResult = await detectIntent(from, subject, body);
+            // OPTIMIZATION: Use Single-Shot Composite Analysis reduces API calls from 4 to 1
+            const { COMPOSITE_ANALYSIS_PROMPT } = require('../prompts/emailAnalysis');
+            const prompt = COMPOSITE_ANALYSIS_PROMPT(from, subject, body);
 
-        // Step 2: Assess urgency
-        const urgencyResult = await assessUrgency(
-            `From: ${from}\nSubject: ${subject}\nBody: ${body}`,
-            intentResult.intent
-        );
+            const result = await makeRequestWithRetry(() => model.generateContent(prompt));
+            const response = result.response.text();
 
-        // SAFETY NET: Force LOW for Marketing/Newsletters
-        if (['MARKETING', 'NEWSLETTER', 'FYI'].includes(intentResult.intent) && urgencyResult.urgency !== 'LOW') {
-            console.log(`🛡️ Safety Net: Downgrading ${intentResult.intent} to LOW`);
-            urgencyResult.urgency = 'LOW';
-            urgencyResult.reasoning = 'Automatically set to LOW based on Intent category.';
+            // Robust JSON parsing
+            const jsonMatch = response.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error('No JSON found in response');
+
+            const analysis = JSON.parse(jsonMatch[0]);
+
+            return {
+                intent: analysis.intent || 'UNKNOWN',
+                urgency: analysis.urgency || 'MEDIUM',
+                summary: analysis.summary || subject,
+                confidenceScore: analysis.confidence || 0.5,
+                reasoning: analysis.reasoning || 'AI analysis',
+                suggestedActions: analysis.suggestedActions || [],
+                draftReply: null, // Saved for later (on demand) to save tokens
+                modelVersion: 'gemini-2.0-flash',
+            };
+        } catch (error) {
+            console.error('AI analysis error:', error.message);
+
+            // Log specific error types for monitoring
+            if (error.message?.includes('quota')) {
+                console.error('❌ Gemini API quota exceeded');
+            } else if (error.message?.includes('API key')) {
+                console.error('❌ Invalid Gemini API key');
+            }
+
+            // Return safe fallback with error info
+            return {
+                ...getFallbackAnalysis(),
+                aiLastError: error.message,
+            };
         }
-
-        // Step 3: Suggest actions
-        const actionsResult = await suggestActions(
-            `From: ${from}\nSubject: ${subject}\nBody: ${body}`,
-            intentResult.intent,
-            urgencyResult.urgency
-        );
-
-        // Step 4: Generate crisp summary
-        const summary = await generateEmailSummary(
-            `From: ${from}\nSubject: ${subject}\nBody: ${body}`
-        );
-
-        // Step 5: Draft reply (if applicable)
-        let draftReply = null;
-        if (['MEETING_REQUEST', 'QUESTION', 'TASK_REQUEST'].includes(intentResult.intent)) {
-            draftReply = await generateReplyDraft(
-                `From: ${from}\nSubject: ${subject}\nBody: ${body}`,
-                intentResult.intent,
-                from
-            );
-        }
-
-        return {
-            intent: intentResult.intent,
-            urgency: urgencyResult.urgency,
-            summary: summary,
-            confidenceScore: intentResult.confidence,
-            reasoning: `Intent: ${intentResult.reasoning}. Urgency: ${urgencyResult.reasoning}`,
-            suggestedActions: actionsResult.actions,
-            draftReply,
-            modelVersion: 'gemini-1.5-flash',
-        };
-    } catch (error) {
-        console.error('AI analysis error:', error.message);
-
-        // Log specific error types for monitoring
-        if (error.message?.includes('quota')) {
-            console.error('❌ Gemini API quota exceeded');
-        } else if (error.message?.includes('API key')) {
-            console.error('❌ Invalid Gemini API key');
-        }
-
-        // Return safe fallback with error info
-        return {
-            ...getFallbackAnalysis(),
-            aiLastError: error.message,
-        };
     }
-}
 
 /**
  * Detect email intent
  */
 async function detectIntent(from, subject, body) {
-    const prompt = INTENT_DETECTION_PROMPT(from, subject, body);
-    const result = await makeRequestWithRetry(() => model.generateContent(prompt));
-    const response = result.response.text();
+        const prompt = INTENT_DETECTION_PROMPT(from, subject, body);
+        const result = await makeRequestWithRetry(() => model.generateContent(prompt));
+        const response = result.response.text();
 
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No JSON found in response');
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('No JSON found in response');
 
-    return JSON.parse(jsonMatch[0]);
-}
+        return JSON.parse(jsonMatch[0]);
+    }
 
-async function assessUrgency(emailContent, intent) {
-    const prompt = URGENCY_ASSESSMENT_PROMPT(emailContent, intent);
-    const result = await makeRequestWithRetry(() => model.generateContent(prompt));
-    const response = result.response.text();
+    async function assessUrgency(emailContent, intent) {
+        const prompt = URGENCY_ASSESSMENT_PROMPT(emailContent, intent);
+        const result = await makeRequestWithRetry(() => model.generateContent(prompt));
+        const response = result.response.text();
 
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No JSON found in response');
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('No JSON found in response');
 
-    return JSON.parse(jsonMatch[0]);
-}
+        return JSON.parse(jsonMatch[0]);
+    }
 
-/**
- * Suggest actions
- */
-async function suggestActions(emailContent, intent, urgency) {
-    const prompt = ACTION_SUGGESTION_PROMPT(emailContent, intent, urgency);
-    const result = await makeRequestWithRetry(() => model.generateContent(prompt));
-    const response = result.response.text();
-
-    const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(cleaned);
-}
-
-async function generateEmailSummary(emailContent) {
-    const prompt = `Summarize this email in ONE short sentence (max 10-12 words). Be crisp and specific.\n\nEmail:\n${emailContent}\n\nReturn ONLY the summary sentence, nothing else.`;
-    const result = await makeRequestWithRetry(() => model.generateContent(prompt));
-    return result.response.text().trim();
-}
-
-async function generateReplyDraft(emailContent, intent, senderName) {
-    const prompt = REPLY_DRAFT_PROMPT(emailContent, intent, senderName);
-    const result = await makeRequestWithRetry(() => model.generateContent(prompt));
-    return result.response.text().trim();
-}
-
-async function generateDailyBrief(emails, tasks, timeOfDay = 'morning') {
-    try {
-        const prompt = DAILY_BRIEF_PROMPT(emails, tasks, timeOfDay);
+    /**
+     * Suggest actions
+     */
+    async function suggestActions(emailContent, intent, urgency) {
+        const prompt = ACTION_SUGGESTION_PROMPT(emailContent, intent, urgency);
         const result = await makeRequestWithRetry(() => model.generateContent(prompt));
         const response = result.response.text();
 
         const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         return JSON.parse(cleaned);
-    } catch (error) {
-        console.error('Error generating daily brief:', error);
-        return {
-            summary: "Unable to generate AI brief at this time (High Traffic). Please check your emails manually.",
-            priorities: []
-        };
     }
-}
 
-module.exports = {
-    analyzeEmail,
-    generateDailyBrief,
-};
+    async function generateEmailSummary(emailContent) {
+        const prompt = `Summarize this email in ONE short sentence (max 10-12 words). Be crisp and specific.\n\nEmail:\n${emailContent}\n\nReturn ONLY the summary sentence, nothing else.`;
+        const result = await makeRequestWithRetry(() => model.generateContent(prompt));
+        return result.response.text().trim();
+    }
+
+    async function generateReplyDraft(emailContent, intent, senderName) {
+        const prompt = REPLY_DRAFT_PROMPT(emailContent, intent, senderName);
+        const result = await makeRequestWithRetry(() => model.generateContent(prompt));
+        return result.response.text().trim();
+    }
+
+    async function generateDailyBrief(emails, tasks, timeOfDay = 'morning') {
+        try {
+            const prompt = DAILY_BRIEF_PROMPT(emails, tasks, timeOfDay);
+            const result = await makeRequestWithRetry(() => model.generateContent(prompt));
+            const response = result.response.text();
+
+            const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            return JSON.parse(cleaned);
+        } catch (error) {
+            console.error('Error generating daily brief:', error);
+            return {
+                summary: "Unable to generate AI brief at this time (High Traffic). Please check your emails manually.",
+                priorities: []
+            };
+        }
+    }
+
+    module.exports = {
+        analyzeEmail,
+        generateDailyBrief,
+    };

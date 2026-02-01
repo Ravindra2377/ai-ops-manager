@@ -101,9 +101,8 @@ router.post('/sync', authMiddleware, syncLimiter, async (req, res) => {
             }
         }
 
-        // Rate Limit Safety: Wait 2s between emails (each email = 4-5 AI calls)
-        // This prevents hitting the 15 RPM limit of free tier
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Rate Limit Safety: Wait 4s between emails (Strict 15 RPM limit)
+        await new Promise(resolve => setTimeout(resolve, 4000));
 
         // Update last sync time
         user.lastSyncAt = new Date();

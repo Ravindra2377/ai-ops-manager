@@ -141,10 +141,54 @@ Return ONLY valid JSON (no markdown, no explanation):
 Keep it concise and actionable. Max 3-5 priorities.
 `;
 
+const COMPOSITE_ANALYSIS_PROMPT = (from, subject, body) => `
+You are an executive assistant for a busy founder. Analyze this email in ONE pass.
+
+Email Details:
+From: ${from}
+Subject: ${subject}
+Body: ${body}
+
+1. CLASSIFY INTENT (One of):
+   - MEETING_REQUEST: Wants to schedule time
+   - TASK_REQUEST: Needs action/deliverable
+   - QUESTION: Needs info/decision
+   - FYI: Info only, no action
+   - URGENT: Time-sensitive (NOT MARKETING)
+   - MARKETING: Sales, Discounts, "X% OFF", "Buy Now" (ALWAYS LOW PRIORITY)
+   - NEWSLETTER: Automated digests
+
+2. ASSESS URGENCY (HIGH/MEDIUM/LOW):
+   - HIGH: Concrete deadline today/tomorrow, Blocking issue, VIP sender.
+   - MEDIUM: Action needed but flexible timing.
+   - LOW: Marketing, Newsletters, FYI, No action needed.
+   - HARD RULE: "Sale/Discount" = MARKETING = LOW.
+
+3. SUGGEST ACTIONS (Array of 0-2 items):
+   - TYPE: REPLY, CREATE_TASK, SCHEDULE_MEETING, IGNORE
+   - Description: Specific next step.
+
+4. SUMMARIZE:
+   - One crisp sentence (max 10 words).
+
+Return valid JSON ONLY:
+{
+  "intent": "MEETING_REQUEST",
+  "urgency": "HIGH",
+  "confidence": 0.9,
+  "summary": "Client requesting urgent meeting for Tuesday.",
+  "reasoning": "Urgent language used regarding deadline.",
+  "suggestedActions": [
+    { "type": "REPLY", "description": "Confirm Tuesday 3pm", "priority": 1 }
+  ]
+}
+`;
+
 module.exports = {
-  INTENT_DETECTION_PROMPT,
+  INTENT_DETECTION_PROMPT, // Keep for legacy/testing
   URGENCY_ASSESSMENT_PROMPT,
   ACTION_SUGGESTION_PROMPT,
   REPLY_DRAFT_PROMPT,
   DAILY_BRIEF_PROMPT,
+  COMPOSITE_ANALYSIS_PROMPT, // New
 };
