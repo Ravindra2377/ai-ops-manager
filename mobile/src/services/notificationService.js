@@ -16,9 +16,22 @@ Notifications.setNotificationHandler({
 });
 
 /**
+ * Check if running in Expo Go
+ */
+function isExpoGo() {
+    return Constants.appOwnership === 'expo';
+}
+
+/**
  * Request notification permissions and get Expo push token
  */
 export async function registerForPushNotifications() {
+    // Skip notifications in Expo Go (not supported in SDK 53+)
+    if (isExpoGo()) {
+        console.log('⚠️ Push notifications are not supported in Expo Go. Use a development or production build.');
+        return null;
+    }
+
     let token;
 
     if (!Device.isDevice) {
