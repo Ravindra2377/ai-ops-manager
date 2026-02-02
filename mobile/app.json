@@ -20,7 +20,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.panvi.loopback"
     },
     "web": {
@@ -30,6 +29,9 @@
       "eas": {
         "projectId": "bfd23455-7fdb-4c65-951b-1f8251810952"
       }
-    }
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }

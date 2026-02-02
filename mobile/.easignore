@@ -1,0 +1,8 @@
+# Ignore files that shouldn't be uploaded to EAS
+node_modules/
+.expo/
+.expo-shared/
+*.log
+.DS_Store
+.git/
+.vscode/
