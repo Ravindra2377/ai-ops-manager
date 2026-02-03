@@ -17,7 +17,7 @@ import BriefCard from '../components/BriefCard';
 import DecisionCard from '../components/DecisionCard';
 import { Image } from 'react-native';
 
-const DEFAULT_AVATAR = require('../../assets/default_avatar.png');
+const DEFAULT_AVATAR = require('../../assets/infinity-logo.png');
 
 const getGreeting = () => {
     const hours = new Date().getHours();
