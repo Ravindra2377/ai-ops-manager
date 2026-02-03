@@ -24,7 +24,6 @@ export default function AppNavigator() {
     }
 
     return (
-    return (
         <Stack.Navigator
             screenOptions={{
                 headerShown: false,
@@ -44,6 +43,5 @@ export default function AppNavigator() {
                 </>
             )}
         </Stack.Navigator>
-    );
     );
 }
