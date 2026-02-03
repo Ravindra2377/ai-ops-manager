@@ -63,13 +63,12 @@ export default function App() {
       navigationRef.current?.navigate('EmailDetail', { emailId: data.emailId });
     }
   };
-  return (
+
   return (
     <AuthProvider>
       <NavigationContainer ref={navigationRef}>
         <AppNavigator />
       </NavigationContainer>
     </AuthProvider>
-  );
   );
 }
