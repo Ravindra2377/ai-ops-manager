@@ -35,12 +35,17 @@ jobs:
         working-directory: mobile
         run: npx expo prebuild --platform android
 
-      - name: Build Android APK (Debug)
+      - name: Configure Release Signing (Use Debug Key)
+        working-directory: mobile/android/app
+        run: |
+          sed -i 's/signingConfig signingConfigs.release/signingConfig signingConfigs.debug/g' build.gradle || true
+
+      - name: Build Android APK (Release)
         working-directory: mobile/android
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleRelease -x lint
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          name: app-release
+          path: mobile/android/app/build/outputs/apk/release/*.apk
