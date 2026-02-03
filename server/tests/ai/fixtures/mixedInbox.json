@@ -1,0 +1,52 @@
+[
+    {
+        "subject": "Approval needed today",
+        "from": "ceo@company.com",
+        "body": "Can you approve the budget by EOD?"
+    },
+    {
+        "subject": "🔥 50% OFF Limited Time Offer",
+        "from": "deals@promo.com",
+        "body": "Don't miss this exclusive discount"
+    },
+    {
+        "subject": "Weekly Digest",
+        "from": "newsletter@company.com",
+        "body": "Here’s what you missed this week"
+    },
+    {
+        "subject": "FYI: Updated Policy",
+        "from": "hr@company.com",
+        "body": "Just sending this for your records, no action needed."
+    },
+    {
+        "subject": "Draft for Review",
+        "from": "jordan@company.com",
+        "body": "Take a look when you have a moment."
+    },
+    {
+        "subject": "Lunch?",
+        "from": "friend@company.com",
+        "body": "Want to grab lunch later?"
+    },
+    {
+        "subject": "System Alert",
+        "from": "noreply@system.com",
+        "body": "Backup completed successfully."
+    },
+    {
+        "subject": "Invitation",
+        "from": "events@network.com",
+        "body": "Join our webinar next week."
+    },
+    {
+        "subject": "Question about project",
+        "from": "dev@company.com",
+        "body": "Where are the API docs?"
+    },
+    {
+        "subject": "Receipt",
+        "from": "billing@saas.com",
+        "body": "Your invoice for this month."
+    }
+]

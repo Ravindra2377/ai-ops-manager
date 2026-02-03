@@ -1,0 +1,12 @@
+[
+    {
+        "subject": "Approval needed today",
+        "from": "ceo@company.com",
+        "body": "Can you approve the budget by EOD?"
+    },
+    {
+        "subject": "URGENT: Server Down",
+        "from": "devops@company.com",
+        "body": "Production server is down, need immediate assistance."
+    }
+]

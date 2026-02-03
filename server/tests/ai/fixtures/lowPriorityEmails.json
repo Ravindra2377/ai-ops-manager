@@ -1,0 +1,17 @@
+[
+    {
+        "subject": "FYI: Updated Policy",
+        "from": "hr@company.com",
+        "body": "Just sending this for your records, no action needed."
+    },
+    {
+        "subject": "Out of Office",
+        "from": "colleague@company.com",
+        "body": "I will be out of the office until next week."
+    },
+    {
+        "subject": "Lunch?",
+        "from": "friend@company.com",
+        "body": "Want to grab lunch later?"
+    }
+]

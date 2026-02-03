@@ -1,0 +1,12 @@
+[
+    {
+        "subject": "Draft for Review",
+        "from": "jordan@company.com",
+        "body": "Here is the draft for next week's blog post. Take a look when you have a moment."
+    },
+    {
+        "subject": "Meeting Notes",
+        "from": "assistant@company.com",
+        "body": "Sending over the notes from today's sync. Let me know if I missed anything."
+    }
+]

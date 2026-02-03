@@ -149,6 +149,11 @@ From: ${from}
 Subject: ${subject}
 Body: ${body}
 
+PRIME DIRECTIVE: You MUST follow this priority distribution:
+- LOW: ~70% of emails (Default)
+- MEDIUM: ~20-25% (Important but not urgent)
+- HIGH: <10% (Rare, truly critical)
+
 1. CLASSIFY INTENT (One of):
    - MEETING_REQUEST: Wants to schedule time
    - TASK_REQUEST: Needs action/deliverable
@@ -156,13 +161,13 @@ Body: ${body}
    - FYI: Info only, no action
    - URGENT: Time-sensitive (NOT MARKETING)
    - MARKETING: Sales, Discounts, "X% OFF", "Buy Now" (ALWAYS LOW PRIORITY)
-   - NEWSLETTER: Automated digests
+   - NEWSLETTER: Automated digests (ALWAYS LOW PRIORITY)
 
-2. ASSESS URGENCY (HIGH/MEDIUM/LOW):
-   - HIGH: Concrete deadline today/tomorrow, Blocking issue, VIP sender.
-   - MEDIUM: Action needed but flexible timing.
-   - LOW: Marketing, Newsletters, FYI, No action needed.
-   - HARD RULE: "Sale/Discount" = MARKETING = LOW.
+2. ASSESS URGENCY (STRICT RULES):
+   - HIGH (RARE): MUST match ALL 3: (1) Human Sender + (2) Direct Request + (3) Explicit Deadline/Blocking Issue.
+   - MEDIUM: Requires action but NO immediate deadline. "Check this when you can".
+   - LOW (DEFAULT): Everything else. Marketing, Newsletters, FYIs, Vague requests.
+   - OVERRIDE: If "Sale", "Discount", "Unsubscribe", or "Off" -> FORCED LOW.
 
 3. SUGGEST ACTIONS (Array of 0-2 items):
    - TYPE: REPLY, CREATE_TASK, SCHEDULE_MEETING, IGNORE
@@ -177,7 +182,7 @@ Return valid JSON ONLY:
   "urgency": "HIGH",
   "confidence": 0.9,
   "summary": "Client requesting urgent meeting for Tuesday.",
-  "reasoning": "Urgent language used regarding deadline.",
+  "reasoning": "Marked HIGH because: (1) Client sender, (2) Asking for meeting, (3) Needs response today.",
   "suggestedActions": [
     { "type": "REPLY", "description": "Confirm Tuesday 3pm", "priority": 1 }
   ]

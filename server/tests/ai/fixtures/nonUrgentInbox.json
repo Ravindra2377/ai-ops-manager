@@ -1,0 +1,27 @@
+[
+    {
+        "subject": "Team Lunch",
+        "from": "manager@company.com",
+        "body": "Let's grab lunch on Friday if you're free."
+    },
+    {
+        "subject": "Travel expense policy",
+        "from": "hr@company.com",
+        "body": "Updated policy attached for your reference."
+    },
+    {
+        "subject": "Weekend plans",
+        "from": "friend@gmail.com",
+        "body": "Are we still on for hiking?"
+    },
+    {
+        "subject": "Receipt for your recent purchase",
+        "from": "no-reply@uber.com",
+        "body": "Thanks for riding with us."
+    },
+    {
+        "subject": "Checking in",
+        "from": "colleague@company.com",
+        "body": "How is the project going? No rush."
+    }
+]
