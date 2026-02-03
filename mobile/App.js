@@ -64,8 +64,12 @@ export default function App() {
     }
   };
   return (
-    <NavigationContainer ref={navigationRef}>
-      <AppNavigator />
-    </NavigationContainer>
+  return (
+    <AuthProvider>
+      <NavigationContainer ref={navigationRef}>
+        <AppNavigator />
+      </NavigationContainer>
+    </AuthProvider>
+  );
   );
 }
