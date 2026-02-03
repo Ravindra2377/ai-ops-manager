@@ -120,6 +120,7 @@ export default function LoginScreen({ navigation }) {
                             <TextInput
                                 style={styles.input}
                                 placeholder="Full Name"
+                                placeholderTextColor="#666"
                                 value={name}
                                 onChangeText={setName}
                                 autoCapitalize="words"
@@ -130,6 +131,7 @@ export default function LoginScreen({ navigation }) {
                         <TextInput
                             style={styles.input}
                             placeholder="Email"
+                            placeholderTextColor="#666"
                             value={email}
                             onChangeText={setEmail}
                             autoCapitalize="none"
@@ -140,6 +142,7 @@ export default function LoginScreen({ navigation }) {
                         <TextInput
                             style={styles.input}
                             placeholder="Password"
+                            placeholderTextColor="#666"
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
@@ -150,6 +153,7 @@ export default function LoginScreen({ navigation }) {
                             <TextInput
                                 style={styles.input}
                                 placeholder="Confirm Password"
+                                placeholderTextColor="#666"
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
                                 secureTextEntry
@@ -223,6 +227,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         borderWidth: 1,
         borderColor: '#e0e0e0',
+        color: '#1a1a1a', // Explicitly set text color
     },
     button: {
         backgroundColor: '#007AFF',
