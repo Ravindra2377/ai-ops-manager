@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 
 // Screens
+import SplashScreen from '../components/SplashScreen';
 import LoginScreen from '../screens/LoginScreen';
 import ConnectGmailScreen from '../screens/ConnectGmailScreen';
 import DashboardScreen from '../screens/DashboardScreen';
@@ -16,10 +18,10 @@ const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
     const { isAuthenticated, loading } = useAuth();
+    const [splashFinished, setSplashFinished] = useState(false);
 
-    if (loading) {
-        // Loading state while checking auth
-        return null;
+    if (loading || !splashFinished) {
+        return <SplashScreen onFinish={() => setSplashFinished(true)} />;
     }
 
     return (
