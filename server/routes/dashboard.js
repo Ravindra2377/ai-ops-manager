@@ -70,10 +70,44 @@ router.get('/brief', authMiddleware, async (req, res) => {
         // Generate brief with AI (with quota error handling)
         let brief;
         try {
-            brief = await generateDailyBrief(emailsForAI, tasksForAI, timeOfDay);
+            const rawBrief = await generateDailyBrief(emailsForAI, tasksForAI, timeOfDay);
+
+            // Transform AI response to BriefCard format
+            // Determine state based on email urgency
+            const highCount = recentEmails.filter(e => e.aiAnalysis?.urgency === 'HIGH').length;
+            const mediumCount = recentEmails.filter(e => e.aiAnalysis?.urgency === 'MEDIUM').length;
+
+            let state = 'CLEAR';
+            let headline = 'All Clear';
+            let subtext = 'Your inbox is under control';
+
+            if (highCount >= 3) {
+                state = 'CRITICAL';
+                headline = 'Urgent Attention Needed';
+                subtext = `${highCount} high-priority emails require immediate action`;
+            } else if (highCount >= 1 || mediumCount >= 5) {
+                state = 'WARNING';
+                headline = 'Action Required';
+                subtext = `${highCount} high and ${mediumCount} medium priority emails`;
+            }
+
+            // Transform priorities to items format
+            const items = (rawBrief.priorities || []).slice(0, 5).map((priority, index) => ({
+                id: `priority-${index}`,
+                text: priority.item || priority.reason || 'No description',
+                subtext: priority.action || priority.reason || null
+            }));
+
+            brief = {
+                state,
+                headline,
+                subtext,
+                items,
+                summary: rawBrief.summary // Keep original summary for reference
+            };
 
             // Save to cache only if successful
-            if (brief && brief.summary && !brief.summary.includes('Unable to generate')) {
+            if (brief && brief.headline && !brief.summary?.includes('Unable to generate')) {
                 user.dailyBrief = brief;
                 user.dailyBriefGeneratedAt = new Date();
                 await user.save();
@@ -83,9 +117,11 @@ router.get('/brief', authMiddleware, async (req, res) => {
             if (error.status === 429) {
                 console.warn('⚠️ AI Quota exhausted, returning fallback brief');
                 brief = {
-                    summary: "AI quota reached. Your emails and tasks are being processed normally.",
-                    priorities: [],
-                    state: 'CLEAR'
+                    state: 'CLEAR',
+                    headline: 'AI Quota Reached',
+                    subtext: 'Your emails are being processed normally',
+                    items: [],
+                    summary: "AI quota reached. Your emails and tasks are being processed normally."
                 };
             } else {
                 throw error; // Re-throw non-quota errors
