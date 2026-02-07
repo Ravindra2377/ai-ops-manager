@@ -19,6 +19,22 @@ export default function ConnectGmailScreen({ navigation }) {
 
         try {
             const userData = await getUserData();
+
+            // Check if user data exists
+            if (!userData || !userData.id) {
+                Alert.alert(
+                    'Session Expired',
+                    'Please log in again to connect Gmail.',
+                    [
+                        {
+                            text: 'Go to Login',
+                            onPress: () => navigation.replace('Login'),
+                        },
+                    ]
+                );
+                return;
+            }
+
             const response = await authAPI.getGmailAuthUrl(userData.id);
 
             if (response.data.success) {
