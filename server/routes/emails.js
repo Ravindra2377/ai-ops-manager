@@ -143,7 +143,7 @@ router.post('/sync', authMiddleware, syncLimiter, async (req, res) => {
 router.get('/', authMiddleware, async (req, res) => {
     try {
         const userId = req.userId;
-        const { urgency, userAction, limit = 50 } = req.query;
+        const { urgency, userAction, limit = 500 } = req.query;
 
         // Build query
         const query = { userId };
