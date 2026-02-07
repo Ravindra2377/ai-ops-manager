@@ -42,7 +42,9 @@ export default function ConnectGmailScreen({ navigation }) {
                 );
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to get Gmail authorization URL');
+            console.error('Gmail auth error:', error);
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to get Gmail authorization URL';
+            Alert.alert('Error', errorMessage);
         } finally {
             setLoading(false);
         }

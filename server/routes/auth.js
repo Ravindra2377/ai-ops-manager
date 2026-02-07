@@ -141,34 +141,52 @@ router.post('/login', authLimiter, async (req, res) => {
  * @query   addingAccount - Boolean, true if adding additional account
  */
 router.get('/gmail/authorize', (req, res) => {
-    const scopes = [
-        'https://www.googleapis.com/auth/gmail.readonly',
-        'https://www.googleapis.com/auth/gmail.modify',
-        'https://www.googleapis.com/auth/calendar',
-    ];
+    try {
+        // Validate environment variables
+        if (!process.env.GMAIL_CLIENT_ID || !process.env.GMAIL_CLIENT_SECRET || !process.env.GMAIL_REDIRECT_URI) {
+            return res.status(500).json({
+                success: false,
+                message: 'Gmail OAuth not configured on server. Please contact support.',
+                error: 'Missing Gmail OAuth environment variables',
+            });
+        }
 
-    // Build state object with userId, label, and addingAccount flag
-    const stateData = {
-        userId: req.query.userId,
-        label: req.query.label || 'Personal', // Default to Personal
-        addingAccount: req.query.addingAccount === 'true',
-        timestamp: Date.now(),
-    };
+        const scopes = [
+            'https://www.googleapis.com/auth/gmail.readonly',
+            'https://www.googleapis.com/auth/gmail.modify',
+            'https://www.googleapis.com/auth/calendar',
+        ];
 
-    // Encode state as base64 JSON
-    const state = Buffer.from(JSON.stringify(stateData)).toString('base64');
+        // Build state object with userId, label, and addingAccount flag
+        const stateData = {
+            userId: req.query.userId,
+            label: req.query.label || 'Personal', // Default to Personal
+            addingAccount: req.query.addingAccount === 'true',
+            timestamp: Date.now(),
+        };
 
-    const url = oauth2Client.generateAuthUrl({
-        access_type: 'offline',
-        scope: scopes,
-        prompt: stateData.addingAccount ? 'select_account' : 'consent',
-        state,
-    });
+        // Encode state as base64 JSON
+        const state = Buffer.from(JSON.stringify(stateData)).toString('base64');
 
-    res.json({
-        success: true,
-        authUrl: url,
-    });
+        const url = oauth2Client.generateAuthUrl({
+            access_type: 'offline',
+            scope: scopes,
+            prompt: stateData.addingAccount ? 'select_account' : 'consent',
+            state,
+        });
+
+        res.json({
+            success: true,
+            authUrl: url,
+        });
+    } catch (error) {
+        console.error('Error generating Gmail auth URL:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to generate authorization URL',
+            error: error.message,
+        });
+    }
 });
 
 /**
