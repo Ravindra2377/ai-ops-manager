@@ -127,10 +127,32 @@ router.post('/sync', authMiddleware, syncLimiter, async (req, res) => {
         });
     } catch (error) {
         console.error('Email sync error:', error);
-        res.status(500).json({
+
+        // Provide specific error messages based on error type
+        let errorMessage = 'Error syncing emails';
+        let statusCode = 500;
+
+        if (error.message?.includes('not found or Gmail not connected')) {
+            errorMessage = 'Gmail account not connected. Please reconnect your Gmail account.';
+            statusCode = 401;
+        } else if (error.message?.includes('invalid_grant') || error.message?.includes('Token has been expired')) {
+            errorMessage = 'Gmail access expired. Please reconnect your Gmail account.';
+            statusCode = 401;
+        } else if (error.code === 429 || error.message?.includes('rate limit')) {
+            errorMessage = 'Too many requests. Please try again in a few minutes.';
+            statusCode = 429;
+        } else if (error.code === 403) {
+            errorMessage = 'Gmail API access denied. Please check permissions.';
+            statusCode = 403;
+        } else if (error.message) {
+            errorMessage = `Sync failed: ${error.message}`;
+        }
+
+        res.status(statusCode).json({
             success: false,
-            message: 'Error syncing emails',
+            message: errorMessage,
             error: error.message,
+            needsReconnect: statusCode === 401,
         });
     }
 });
