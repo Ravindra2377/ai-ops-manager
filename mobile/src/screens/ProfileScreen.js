@@ -388,6 +388,20 @@ export default function ProfileScreen({ navigation }) {
                     <Text style={styles.securityItem}>• All tokens are encrypted</Text>
                     <Text style={styles.securityItem}>• You can disconnect anytime</Text>
                 </View>
+
+                {gmailAccounts.length > 0 && (
+                    <TouchableOpacity
+                        style={styles.disconnectAllButton}
+                        onPress={handleDisconnectAllGmail}
+                    >
+                        <Text style={styles.disconnectAllButtonText}>
+                            🔄 Disconnect All Gmail Accounts
+                        </Text>
+                        <Text style={styles.disconnectAllButtonSubtext}>
+                            Useful if experiencing token expiry issues
+                        </Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* Logout */}
