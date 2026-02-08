@@ -95,12 +95,12 @@ export default function TermsAcceptanceScreen({ onAccept, navigation }) {
                         <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
                             {agreedToTerms && <Text style={styles.checkmark}>✓</Text>}
                         </View>
-                        <Text style={styles.checkboxLabel}>
-                            I agree to the{' '}
-                            <Text style={styles.link} onPress={handleOpenTerms}>
-                                Terms of Service
-                            </Text>
-                        </Text>
+                        <View style={styles.checkboxTextContainer}>
+                            <Text style={styles.checkboxLabel}>I agree to the </Text>
+                            <TouchableOpacity onPress={handleOpenTerms} activeOpacity={0.6}>
+                                <Text style={styles.link}>Terms of Service</Text>
+                            </TouchableOpacity>
+                        </View>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -111,12 +111,12 @@ export default function TermsAcceptanceScreen({ onAccept, navigation }) {
                         <View style={[styles.checkbox, agreedToPrivacy && styles.checkboxChecked]}>
                             {agreedToPrivacy && <Text style={styles.checkmark}>✓</Text>}
                         </View>
-                        <Text style={styles.checkboxLabel}>
-                            I agree to the{' '}
-                            <Text style={styles.link} onPress={handleOpenPrivacy}>
-                                Privacy Policy
-                            </Text>
-                        </Text>
+                        <View style={styles.checkboxTextContainer}>
+                            <Text style={styles.checkboxLabel}>I agree to the </Text>
+                            <TouchableOpacity onPress={handleOpenPrivacy} activeOpacity={0.6}>
+                                <Text style={styles.link}>Privacy Policy</Text>
+                            </TouchableOpacity>
+                        </View>
                     </TouchableOpacity>
                 </View>
 
