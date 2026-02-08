@@ -245,15 +245,22 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     checkboxLabel: {
-        flex: 1,
         fontSize: 15,
         lineHeight: 22,
         color: '#3C3C43',
+    },
+    checkboxTextContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'center',
     },
     link: {
         color: '#007AFF',
         fontWeight: '600',
         textDecorationLine: 'underline',
+        fontSize: 15,
+        lineHeight: 22,
     },
     continueButton: {
         backgroundColor: '#007AFF',
