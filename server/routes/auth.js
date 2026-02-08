@@ -361,4 +361,46 @@ router.get('/me', authMiddleware, async (req, res) => {
     }
 });
 
+/**
+ * @route   POST /api/auth/gmail/disconnect
+ * @desc    Disconnect Gmail and clear tokens
+ * @access  Protected
+ */
+router.post('/gmail/disconnect', authMiddleware, async (req, res) => {
+    try {
+        const userId = req.userId;
+
+        // Find user
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+        }
+
+        // Clear Gmail tokens and connection status
+        user.gmailAccessToken = null;
+        user.gmailRefreshToken = null;
+        user.isGmailConnected = false;
+        user.gmailAccounts = [];
+
+        await user.save();
+
+        console.log(`✅ Gmail disconnected for user: ${user.email}`);
+
+        res.json({
+            success: true,
+            message: 'Gmail disconnected successfully. You can reconnect anytime.',
+        });
+    } catch (error) {
+        console.error('Error disconnecting Gmail:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to disconnect Gmail',
+            error: error.message,
+        });
+    }
+});
+
 module.exports = router;
