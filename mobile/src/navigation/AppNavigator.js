@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
+import { hasAcceptedTerms, saveTermsAcceptance } from '../utils/storage';
 
 // Screens
 import SplashScreen from '../components/SplashScreen';
+import TermsAcceptanceScreen from '../screens/TermsAcceptanceScreen';
 import LoginScreen from '../screens/LoginScreen';
 import ConnectGmailScreen from '../screens/ConnectGmailScreen';
 import DashboardScreen from '../screens/DashboardScreen';
@@ -18,8 +20,32 @@ const Stack = createNativeStackNavigator();
 export default function AppNavigator() {
     const { isAuthenticated, loading } = useAuth();
     const [splashFinished, setSplashFinished] = useState(false);
+    const [termsAccepted, setTermsAccepted] = useState(false);
+    const [checkingTerms, setCheckingTerms] = useState(true);
 
-    if (loading || !splashFinished) {
+    useEffect(() => {
+        checkTermsAcceptance();
+    }, []);
+
+    const checkTermsAcceptance = async () => {
+        try {
+            const accepted = await hasAcceptedTerms();
+            setTermsAccepted(accepted);
+        } catch (error) {
+            console.error('Error checking terms acceptance:', error);
+        } finally {
+            setCheckingTerms(false);
+        }
+    };
+
+    const handleTermsAccept = async () => {
+        const success = await saveTermsAcceptance();
+        if (success) {
+            setTermsAccepted(true);
+        }
+    };
+
+    if (loading || !splashFinished || checkingTerms) {
         return <SplashScreen onFinish={() => setSplashFinished(true)} />;
     }
 
@@ -29,7 +55,11 @@ export default function AppNavigator() {
                 headerShown: false,
             }}
         >
-            {!isAuthenticated ? (
+            {!termsAccepted ? (
+                <Stack.Screen name="TermsAcceptance">
+                    {(props) => <TermsAcceptanceScreen {...props} onAccept={handleTermsAccept} />}
+                </Stack.Screen>
+            ) : !isAuthenticated ? (
                 <Stack.Screen name="Login" component={LoginScreen} />
             ) : (
                 <>

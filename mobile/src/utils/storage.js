@@ -72,3 +72,30 @@ export const isAuthenticated = async () => {
     const token = await getToken();
     return !!token;
 };
+
+/**
+ * Save terms acceptance
+ */
+export const saveTermsAcceptance = async () => {
+    try {
+        await SecureStore.setItemAsync('termsAccepted', 'true');
+        await SecureStore.setItemAsync('termsAcceptedDate', new Date().toISOString());
+        return true;
+    } catch (error) {
+        console.error('Error saving terms acceptance:', error);
+        return false;
+    }
+};
+
+/**
+ * Check if user has accepted terms
+ */
+export const hasAcceptedTerms = async () => {
+    try {
+        const accepted = await SecureStore.getItemAsync('termsAccepted');
+        return accepted === 'true';
+    } catch (error) {
+        console.error('Error checking terms acceptance:', error);
+        return false;
+    }
+};
