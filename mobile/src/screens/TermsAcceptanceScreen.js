@@ -5,20 +5,19 @@ import {
     ScrollView,
     TouchableOpacity,
     StyleSheet,
-    Linking,
     SafeAreaView,
 } from 'react-native';
 
-export default function TermsAcceptanceScreen({ onAccept }) {
+export default function TermsAcceptanceScreen({ onAccept, navigation }) {
     const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
 
     const handleOpenTerms = () => {
-        Linking.openURL('https://ravindra2377.github.io/ai-ops-manager/TERMS_OF_SERVICE');
+        navigation.navigate('TermsOfService');
     };
 
     const handleOpenPrivacy = () => {
-        Linking.openURL('https://ravindra2377.github.io/ai-ops-manager/PRIVACY_POLICY');
+        navigation.navigate('PrivacyPolicy');
     };
 
     const handleContinue = () => {

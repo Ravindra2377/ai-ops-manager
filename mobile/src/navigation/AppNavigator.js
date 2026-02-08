@@ -6,6 +6,8 @@ import { hasAcceptedTerms, saveTermsAcceptance } from '../utils/storage';
 // Screens
 import SplashScreen from '../components/SplashScreen';
 import TermsAcceptanceScreen from '../screens/TermsAcceptanceScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+import TermsOfServiceScreen from '../screens/TermsOfServiceScreen';
 import LoginScreen from '../screens/LoginScreen';
 import ConnectGmailScreen from '../screens/ConnectGmailScreen';
 import DashboardScreen from '../screens/DashboardScreen';
