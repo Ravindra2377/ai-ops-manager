@@ -216,6 +216,43 @@ export default function ProfileScreen({ navigation }) {
         );
     };
 
+    const handleDisconnectAllGmail = () => {
+        Alert.alert(
+            'Disconnect All Gmail Accounts?',
+            'This will clear all Gmail tokens and disconnect all accounts. You can reconnect anytime. This is useful if you\'re experiencing token expiry issues.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Disconnect All',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const response = await authAPI.disconnectGmail();
+                            if (response.data.success) {
+                                Alert.alert(
+                                    'Success',
+                                    'All Gmail accounts disconnected. You can reconnect from the Connect Gmail screen.',
+                                    [
+                                        {
+                                            text: 'OK',
+                                            onPress: () => {
+                                                loadGmailAccounts();
+                                                loadUserData();
+                                            },
+                                        },
+                                    ]
+                                );
+                            }
+                        } catch (error) {
+                            console.error('Error disconnecting all Gmail:', error);
+                            Alert.alert('Error', 'Failed to disconnect Gmail accounts');
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -627,6 +664,25 @@ const styles = StyleSheet.create({
         fontSize: 17,
         fontWeight: '600',
         color: '#FF3B30',
+    },
+    disconnectAllButton: {
+        backgroundColor: '#fff',
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#FF9500',
+        marginTop: 12,
+    },
+    disconnectAllButtonText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#FF9500',
+        marginBottom: 4,
+    },
+    disconnectAllButtonSubtext: {
+        fontSize: 12,
+        color: '#8E8E93',
     },
     bottomSpacer: {
         height: 40,
