@@ -59,6 +59,9 @@ export const authAPI = {
     getGmailAuthUrl: (userId) =>
         api.get(`/auth/gmail/authorize?userId=${userId}`),
 
+    disconnectGmail: () =>
+        api.post('/auth/gmail/disconnect'),
+
     getProfile: () =>
         api.get('/auth/me'),
 };
