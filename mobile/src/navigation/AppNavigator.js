@@ -58,9 +58,13 @@ export default function AppNavigator() {
             }}
         >
             {!termsAccepted ? (
-                <Stack.Screen name="TermsAcceptance">
-                    {(props) => <TermsAcceptanceScreen {...props} onAccept={handleTermsAccept} />}
-                </Stack.Screen>
+                <>
+                    <Stack.Screen name="TermsAcceptance">
+                        {(props) => <TermsAcceptanceScreen {...props} onAccept={handleTermsAccept} />}
+                    </Stack.Screen>
+                    <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+                    <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
+                </>
             ) : !isAuthenticated ? (
                 <Stack.Screen name="Login" component={LoginScreen} />
             ) : (
