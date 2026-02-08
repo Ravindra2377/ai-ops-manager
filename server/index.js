@@ -17,6 +17,9 @@ const notificationRoutes = require('./routes/notifications');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy - required for Render deployment
+app.set('trust proxy', 1);
+
 // Connect to MongoDB
 connectDB();
 

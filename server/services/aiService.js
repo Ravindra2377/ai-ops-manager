@@ -9,8 +9,8 @@ const {
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-// Use Gemini 1.5 Pro - stable model for current API
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+// Use Gemini 2.5 Flash - current stable model (best price-performance)
+const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
 /**
  * Helper to handle rate limits (429) with exponential backoff
@@ -189,7 +189,7 @@ async function analyzeEmail(emailData) {
             reasoning: refinedAnalysis.reasoning || 'AI analysis',
             suggestedActions: refinedAnalysis.suggestedActions || [],
             draftReply: null, // Saved for later (on demand) to save tokens
-            modelVersion: 'gemini-1.5-pro',
+            modelVersion: 'gemini-2.5-flash',
             signalScore: signalScore // Log for debugging
         };
     } catch (error) {
